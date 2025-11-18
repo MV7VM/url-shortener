@@ -15,7 +15,7 @@ import (
 func New() *fx.App {
 	return fx.New(
 		fx.Options(
-			repository.New(),
+			repository.New(), //
 			usecase.New(),
 			http.New(),
 		),
