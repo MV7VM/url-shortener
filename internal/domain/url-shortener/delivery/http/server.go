@@ -67,7 +67,7 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 	}
 
 	url := strings.TrimSpace(string(body))
-	if !validateUrl(url) {
+	if !validateURL(url) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid url",
 		})
@@ -102,7 +102,7 @@ func (s *Server) GetByID(c *gin.Context) {
 	})
 }
 
-func validateUrl(url string) bool {
+func validateURL(url string) bool {
 	regex := regexp.MustCompile("^(http(s)?://)?(www.)?[a-zA-Z0-9.-]+.[a-zA-Z]{2,6}(/[a-zA-Z0-9.-]*)*$")
 	return regex.MatchString(url)
 }
