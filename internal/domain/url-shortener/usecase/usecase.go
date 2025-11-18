@@ -42,15 +42,15 @@ func (u *Usecase) GetByID(ctx context.Context, s string) (string, error) {
 }
 
 func (u *Usecase) CreateShortURL(ctx context.Context, url string) (string, error) {
-	encodedUrl := u.shortenURL()
+	encodedURL := u.shortenURL()
 
-	err := u.repo.Set(ctx, encodedUrl, url)
+	err := u.repo.Set(ctx, encodedURL, url)
 	if err != nil {
 		u.log.Error("failed to set url", zap.String("url", url), zap.Error(err))
 		return "", err
 	}
 
-	return encodedUrl, nil
+	return encodedURL, nil
 }
 
 func (u *Usecase) shortenURL() string {
