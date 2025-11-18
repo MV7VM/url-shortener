@@ -6,7 +6,7 @@ package http
 import (
 	"context"
 	"net/http"
-	"regexp"
+	"net/url"
 	"strings"
 
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
@@ -102,7 +102,35 @@ func (s *Server) GetByID(c *gin.Context) {
 	})
 }
 
-func validateURL(url string) bool {
-	regex := regexp.MustCompile("^(http(s)?://)?(www.)?[a-zA-Z0-9.-]+.[a-zA-Z]{2,6}(/[a-zA-Z0-9.-]*)*$")
-	return regex.MatchString(url)
+func validateURL(urlStr string) bool {
+	urlStr = strings.TrimSpace(urlStr)
+	if urlStr == "" {
+		return false
+	}
+
+	// Пытаемся распарсить URL
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return false
+	}
+
+	// Если нет схемы, добавляем http:// и пытаемся снова
+	if u.Scheme == "" {
+		u, err = url.Parse("http://" + urlStr)
+		if err != nil {
+			return false
+		}
+	}
+
+	// Проверяем, что есть host
+	if u.Host == "" {
+		return false
+	}
+
+	// Проверяем, что схема поддерживается
+	if u.Scheme != "" && u.Scheme != "http" && u.Scheme != "https" {
+		return false
+	}
+
+	return true
 }
