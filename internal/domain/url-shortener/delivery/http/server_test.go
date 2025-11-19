@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/MV7VM/url-shortener/internal/config"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,6 +55,7 @@ func TestServer_CreateShortURL_Success(t *testing.T) {
 	server := &Server{
 		logger: logger,
 		uc:     mockUC,
+		cfg:    &config.Model{},
 	}
 
 	router := setupTestRouter(server)
@@ -64,7 +66,7 @@ func TestServer_CreateShortURL_Success(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Equal(t, "abc123", rec.Body.String())
 }
 
@@ -128,6 +130,7 @@ func TestServer_CreateShortURL_WithWhitespace(t *testing.T) {
 	server := &Server{
 		logger: logger,
 		uc:     mockUC,
+		cfg:    &config.Model{},
 	}
 
 	router := setupTestRouter(server)
@@ -138,7 +141,7 @@ func TestServer_CreateShortURL_WithWhitespace(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Equal(t, "xyz789", rec.Body.String())
 }
 
@@ -165,12 +168,7 @@ func TestServer_GetByID_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusTemporaryRedirect, rec.Code)
 
-	var resp struct {
-		Location string `json:"Location"`
-	}
-	err := json.Unmarshal(rec.Body.Bytes(), &resp)
-	require.NoError(t, err)
-	assert.Equal(t, "https://example.com", resp.Location)
+	assert.Equal(t, "https://example.com", rec.Header().Get("Location"))
 }
 
 func TestServer_GetByID_NotFound(t *testing.T) {
