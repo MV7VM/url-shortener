@@ -100,7 +100,7 @@ func (s *Server) GetByID(c *gin.Context) {
 
 	c.Header("Location", url)
 
-	c.Status(http.StatusCreated)
+	c.Status(http.StatusTemporaryRedirect)
 }
 
 func validateURL(urlStr string) bool {
