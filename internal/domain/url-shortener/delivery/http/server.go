@@ -82,7 +82,7 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	c.String(http.StatusOK, shortURL)
+	c.String(http.StatusOK, "http://localhost:8080/"+shortURL)
 }
 
 func (s *Server) GetByID(c *gin.Context) {
