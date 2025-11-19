@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/MV7VM/url-shortener/internal/config"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +19,7 @@ import (
 type Server struct {
 	logger *zap.Logger
 	serv   *gin.Engine
+	cfg    *config.Model
 	uc     uc
 }
 
@@ -27,12 +29,13 @@ type uc interface {
 }
 
 // NewServer wires up Gin, logging and use-case dependencies.
-func NewServer(logger *zap.Logger, uc *usecase.Usecase) (*Server, error) {
+func NewServer(logger *zap.Logger, cfg *config.Model, uc *usecase.Usecase) (*Server, error) {
 	// Gin already installs its own recovery & logging middleware; leave as-is.
 	return &Server{
 		logger: logger,
 		serv:   gin.Default(),
 		uc:     uc,
+		cfg:    cfg,
 	}, nil
 }
 
@@ -41,8 +44,8 @@ func (s *Server) OnStart(_ context.Context) error {
 	go func() {
 		s.createController()
 
-		s.logger.Info("HTTP server started", zap.String("addr", "127.0.0.1:8080"))
-		if err := s.serv.Run("127.0.0.1:8080"); err != nil {
+		s.logger.Info("HTTP server started", zap.String("addr", s.cfg.HTTP.Host))
+		if err := s.serv.Run(s.cfg.HTTP.Host); err != nil {
 			s.logger.Error("HTTP server exited", zap.Error(err))
 		}
 	}()
@@ -82,7 +85,7 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	c.String(http.StatusOK, "http://localhost:8080/"+shortURL)
+	c.String(http.StatusOK, s.cfg.HTTP.ReturningUrl+shortURL)
 }
 
 func (s *Server) GetByID(c *gin.Context) {

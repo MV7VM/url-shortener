@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 
+	"github.com/MV7VM/url-shortener/internal/config"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/http"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
@@ -20,6 +21,7 @@ func New() *fx.App {
 			http.New(),
 		),
 		fx.Provide(
+			config.NewConfig,
 			context.Background,
 			zap.NewDevelopment,
 		),
