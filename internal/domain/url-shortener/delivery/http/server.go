@@ -82,7 +82,7 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	c.String(http.StatusOK, "http://localhost:8080/"+shortURL)
+	c.String(http.StatusCreated, "http://localhost:8080/"+shortURL)
 }
 
 func (s *Server) GetByID(c *gin.Context) {
@@ -95,11 +95,9 @@ func (s *Server) GetByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusTemporaryRedirect, struct {
-		Location string `json:"Location"`
-	}{
-		Location: url,
-	})
+	c.Header("Location", url)
+
+	c.Status(http.StatusTemporaryRedirect)
 }
 
 func validateURL(urlStr string) bool {
