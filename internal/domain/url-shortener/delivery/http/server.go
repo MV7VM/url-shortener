@@ -85,7 +85,7 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	c.String(http.StatusOK, s.cfg.HTTP.ReturningUrl+shortURL)
+	c.String(http.StatusOK, s.cfg.HTTP.ReturningURL+shortURL)
 }
 
 func (s *Server) GetByID(c *gin.Context) {

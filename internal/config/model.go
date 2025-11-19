@@ -6,5 +6,5 @@ type Model struct {
 
 type HTTPConfig struct {
 	Host         string
-	ReturningUrl string
+	ReturningURL string
 }
