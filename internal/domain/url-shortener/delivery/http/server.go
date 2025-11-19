@@ -30,6 +30,9 @@ type uc interface {
 
 // NewServer wires up Gin, logging and use-case dependencies.
 func NewServer(logger *zap.Logger, cfg *config.Model, uc *usecase.Usecase) (*Server, error) {
+	if cfg.HTTP.ReturningURL[len(cfg.HTTP.ReturningURL)-1] != '/' {
+		cfg.HTTP.ReturningURL += "/"
+	}
 	// Gin already installs its own recovery & logging middleware; leave as-is.
 	return &Server{
 		logger: logger,
