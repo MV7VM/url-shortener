@@ -98,11 +98,9 @@ func (s *Server) GetByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusTemporaryRedirect, struct {
-		Location string `json:"Location"`
-	}{
-		Location: url,
-	})
+	c.Header("Location", url)
+
+	c.Status(http.StatusCreated)
 }
 
 func validateURL(urlStr string) bool {
