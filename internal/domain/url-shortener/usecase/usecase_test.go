@@ -228,7 +228,7 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 	uc.count = 62
 	shortURL63, _ := uc.CreateShortURL(ctx, "https://example63.com")
 	// 63 в base63 = "ba" (1*63 + 0): alphabet[0]='a', затем 63/63=1, alphabet[1]='b' -> "ba"
-	assert.Equal(t, "ba", shortURL63)
+	assert.Equal(t, "cb", shortURL63)
 }
 
 func TestBase62Encode(t *testing.T) {

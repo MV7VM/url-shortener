@@ -64,8 +64,8 @@ func TestServer_CreateShortURL_Success(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "abc123", rec.Body.String())
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.Equal(t, "http://localhost:8080/abc123", rec.Body.String())
 }
 
 func TestServer_CreateShortURL_EmptyBody(t *testing.T) {
@@ -138,8 +138,8 @@ func TestServer_CreateShortURL_WithWhitespace(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "xyz789", rec.Body.String())
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.Equal(t, "http://localhost:8080/xyz789", rec.Body.String())
 }
 
 func TestServer_GetByID_Success(t *testing.T) {
@@ -165,12 +165,7 @@ func TestServer_GetByID_Success(t *testing.T) {
 
 	assert.Equal(t, http.StatusTemporaryRedirect, rec.Code)
 
-	var resp struct {
-		Location string `json:"Location"`
-	}
-	err := json.Unmarshal(rec.Body.Bytes(), &resp)
-	require.NoError(t, err)
-	assert.Equal(t, "https://example.com", resp.Location)
+	assert.Equal(t, "https://example.com", rec.Header().Get("Location"))
 }
 
 func TestServer_GetByID_NotFound(t *testing.T) {
