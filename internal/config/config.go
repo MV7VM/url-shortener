@@ -12,12 +12,12 @@ func NewConfig() (*Model, error) {
 	)
 
 	cfg.HTTP.Host, ok = os.LookupEnv("SERVER_ADDRESS")
-	if !ok {
+	if !ok || cfg.HTTP.Host == "" {
 		flag.StringVar(&cfg.HTTP.Host, "a", "localhost:8080", "address and port to run server")
 	}
 
 	cfg.HTTP.ReturningURL, ok = os.LookupEnv("BASE_URL")
-	if !ok {
+	if !ok || cfg.HTTP.ReturningURL == "" {
 		flag.StringVar(&cfg.HTTP.ReturningURL, "b", "http://localhost:8080/", "address and port to run server")
 	}
 
