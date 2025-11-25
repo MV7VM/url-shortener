@@ -3,25 +3,27 @@ package config
 import (
 	"flag"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func NewConfig() (*Model, error) {
 	var (
 		cfg Model
-		//ok  bool
+		ok  bool
 	)
 
-	cfg.HTTP.Host = os.Getenv("SERVER_ADDRESS")
-	if cfg.HTTP.Host == "" {
+	godotenv.Load()
+
+	cfg.HTTP.Host, ok = os.LookupEnv("SERVER_ADDRESS")
+	if !ok {
 		flag.StringVar(&cfg.HTTP.Host, "a", "localhost:8080", "address and port to run server")
 	}
 
-	cfg.HTTP.ReturningURL = os.Getenv("BASE_URL")
-	if cfg.HTTP.ReturningURL == "" {
+	cfg.HTTP.ReturningURL, ok = os.LookupEnv("BASE_URL")
+	if !ok {
 		flag.StringVar(&cfg.HTTP.ReturningURL, "b", "http://localhost:8080/", "address and port to run server")
 	}
-
-	flag.Parse()
 
 	return &cfg, nil
 }
