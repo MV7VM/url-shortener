@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/MV7VM/url-shortener/internal/config"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
@@ -63,20 +62,6 @@ func (s *Server) OnStart(_ context.Context) error {
 func (s *Server) OnStop(_ context.Context) error {
 	s.logger.Info("HTTP server stopped")
 	return nil
-}
-
-func (s *Server) withLogger(handler gin.HandlerFunc) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		startTime := time.Now()
-
-		handler(c)
-
-		s.logger.Info("",
-			zap.String("uri", c.Request.RequestURI),
-			zap.String("method", c.Request.Method),
-			zap.Any("duration", time.Since(startTime)),
-		)
-	}
 }
 
 func (s *Server) CreateShortURL(c *gin.Context) {
