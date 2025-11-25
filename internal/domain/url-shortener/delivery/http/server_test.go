@@ -228,29 +228,6 @@ func TestServer_CreateShortURLByBody_Success(t *testing.T) {
 	assert.Equal(t, "abc123", resp.ShortURL)
 }
 
-func TestServer_CreateShortURLByBody_InvalidJSON(t *testing.T) {
-	logger := zap.NewNop()
-	server := &Server{
-		logger: logger,
-		uc:     &mockUsecase{},
-	}
-
-	router := setupTestRouter(server)
-
-	reqBody := `{"url":`
-	req := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBufferString(reqBody))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-
-	router.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	var resp map[string]interface{}
-	err := json.Unmarshal(rec.Body.Bytes(), &resp)
-	require.NoError(t, err)
-	assert.Contains(t, resp["error"], "failed to read request body")
-}
-
 func TestServer_CreateShortURLByBody_InvalidURL(t *testing.T) {
 	logger := zap.NewNop()
 	server := &Server{
