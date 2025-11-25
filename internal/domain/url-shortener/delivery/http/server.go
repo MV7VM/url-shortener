@@ -5,6 +5,8 @@ package http
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -116,16 +118,26 @@ type CreateShortURLByBodyResp struct {
 
 func (s *Server) CreateShortURLByBody(c *gin.Context) {
 	// Получаем raw body
-	var body CreateShortURLByBodyReq
-	err := c.ShouldBindJSON(&body)
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "failed to read request body: " + err.Error(),
+			"error": "Failed to read request body",
 		})
 		return
 	}
 
-	url := strings.TrimSpace(body.URL)
+	// Декодируем JSON в структуру
+	var reqBody CreateShortURLByBodyReq
+
+	err = json.Unmarshal(body, &reqBody)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid JSON format",
+		})
+		return
+	}
+
+	url := strings.TrimSpace(reqBody.URL)
 	if !validateURL(url) {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "invalid url",
