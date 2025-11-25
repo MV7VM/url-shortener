@@ -3,8 +3,6 @@ package config
 import (
 	"flag"
 	"os"
-
-	"github.com/joho/godotenv"
 )
 
 func NewConfig() (*Model, error) {
@@ -13,7 +11,7 @@ func NewConfig() (*Model, error) {
 		ok  bool
 	)
 
-	godotenv.Load()
+	//godotenv.Load()
 
 	cfg.HTTP.Host, ok = os.LookupEnv("SERVER_ADDRESS")
 	if !ok {
