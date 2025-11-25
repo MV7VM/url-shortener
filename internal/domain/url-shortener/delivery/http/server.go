@@ -142,7 +142,7 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, CreateShortURLByBodyResp{
-		ShortURL: shortURL,
+		ShortURL: s.cfg.HTTP.ReturningURL + shortURL,
 	})
 }
 
