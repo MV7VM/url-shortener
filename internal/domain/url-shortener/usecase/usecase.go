@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository/cache"
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ const (
 
 type Usecase struct {
 	log   *zap.Logger
-	count uint64
+	count atomic.Uint64
 	repo  repo
 }
 
@@ -54,8 +55,8 @@ func (u *Usecase) CreateShortURL(ctx context.Context, url string) (string, error
 }
 
 func (u *Usecase) shortenURL() string {
-	u.count++
-	return base62Encode(u.count)
+	u.count.Add(1)
+	return base62Encode(u.count.Load())
 }
 
 func base62Encode(number uint64) string {

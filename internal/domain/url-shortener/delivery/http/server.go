@@ -106,6 +106,46 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 	c.String(http.StatusCreated, s.cfg.HTTP.ReturningURL+shortURL)
 }
 
+type CreateShortURLByBodyReq struct {
+	URL string `json:"url"`
+}
+
+type CreateShortURLByBodyResp struct {
+	ShortURL string `json:"result"`
+}
+
+func (s *Server) CreateShortURLByBody(c *gin.Context) {
+	// Получаем raw body
+	var body CreateShortURLByBodyReq
+	err := c.ShouldBindJSON(&body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to read request body: " + err.Error(),
+		})
+		return
+	}
+
+	url := strings.TrimSpace(body.URL)
+	if !validateURL(url) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid url",
+		})
+		return
+	}
+
+	shortURL, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, CreateShortURLByBodyResp{
+		ShortURL: shortURL,
+	})
+}
+
 func (s *Server) GetByID(c *gin.Context) {
 	id := c.Param("id")
 
