@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"errors"
-	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,13 +34,10 @@ func TestNewUsecase(t *testing.T) {
 	logger := zap.NewNop()
 	mockRepo := &mockRepo{}
 
-	var a atomic.Uint64
-
 	// Создаем Usecase напрямую для тестов, так как NewUsecase требует *cache.Repository
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: a,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	assert.NotNil(t, uc)
@@ -62,12 +58,9 @@ func TestUsecase_GetByID_Success(t *testing.T) {
 		},
 	}
 
-	var a atomic.Uint64
-
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: a,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -89,12 +82,9 @@ func TestUsecase_GetByID_RepositoryError(t *testing.T) {
 		},
 	}
 
-	var a atomic.Uint64
-
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: a,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -120,12 +110,9 @@ func TestUsecase_CreateShortURL_Success(t *testing.T) {
 		},
 	}
 
-	var a atomic.Uint64
-
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: a,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -150,12 +137,9 @@ func TestUsecase_CreateShortURL_RepositoryError(t *testing.T) {
 		},
 	}
 
-	var a atomic.Uint64
-
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: a,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -177,12 +161,9 @@ func TestUsecase_CreateShortURL_MultipleSequential(t *testing.T) {
 		},
 	}
 
-	var a atomic.Uint64
-
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: a,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -217,12 +198,9 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 		},
 	}
 
-	var a atomic.Uint64
-
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: a,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -285,12 +263,9 @@ func TestUsecase_GetByID_EmptyKey(t *testing.T) {
 		},
 	}
 
-	var a atomic.Uint64
-
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: a,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -310,12 +285,9 @@ func TestUsecase_CreateShortURL_EmptyURL(t *testing.T) {
 		},
 	}
 
-	var a atomic.Uint64
-
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: a,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
