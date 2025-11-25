@@ -6,6 +6,6 @@ func (s *Server) createController() {
 	common := s.serv.Group("")
 
 	// EduGroups routes
-	common.POST("/", s.CreateShortURL)
-	common.GET("/:id", s.GetByID)
+	common.POST("/", s.withLogger(s.CreateShortURL))
+	common.GET("/:id", s.withLogger(s.GetByID))
 }
