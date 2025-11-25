@@ -8,18 +8,18 @@ import (
 func NewConfig() (*Model, error) {
 	var (
 		cfg Model
-		ok  bool
+		//ok  bool
 	)
 
 	//godotenv.Load()
 
-	cfg.HTTP.Host, ok = os.LookupEnv("SERVER_ADDRESS")
-	if !ok {
+	cfg.HTTP.Host = os.Getenv("SERVER_ADDRESS")
+	if cfg.HTTP.Host == "" {
 		flag.StringVar(&cfg.HTTP.Host, "a", "localhost:8080", "address and port to run server")
 	}
 
-	cfg.HTTP.ReturningURL, ok = os.LookupEnv("BASE_URL")
-	if !ok {
+	cfg.HTTP.ReturningURL = os.Getenv("BASE_URL")
+	if cfg.HTTP.ReturningURL == "" {
 		flag.StringVar(&cfg.HTTP.ReturningURL, "b", "http://localhost:8080/", "address and port to run server")
 	}
 
