@@ -10,5 +10,13 @@ func New() fx.Option {
 		fx.Provide(
 			cache.NewRepository,
 		),
+		fx.Invoke(
+			func(lc fx.Lifecycle, s *cache.Repository) {
+				lc.Append(fx.Hook{
+					OnStart: s.OnStart,
+					OnStop:  s.OnStop,
+				})
+			},
+		),
 	)
 }
