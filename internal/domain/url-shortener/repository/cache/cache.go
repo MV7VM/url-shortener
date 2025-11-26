@@ -81,10 +81,10 @@ func (r *Repository) recovery() error {
 	}
 
 	for _, item := range items {
-		if item.ShortUrl == "" || item.OriginalUrl == "" {
+		if item.ShortURL == "" || item.OriginalURL == "" {
 			continue
 		}
-		r.db.Store(item.ShortUrl, item.OriginalUrl)
+		r.db.Store(item.ShortURL, item.OriginalURL)
 	}
 
 	return nil
@@ -106,8 +106,8 @@ func (r *Repository) save() error {
 		}
 
 		items = append(items, entities.Item{
-			ShortUrl:    shortURL,
-			OriginalUrl: originalURL,
+			ShortURL:    shortURL,
+			OriginalURL: originalURL,
 		})
 		return true
 	})
