@@ -12,8 +12,16 @@ import (
 
 // mockRepo мок для интерфейса repo
 type mockRepo struct {
-	GetFunc func(context.Context, string) (string, error)
-	SetFunc func(context.Context, string, string) error
+	GetFunc      func(context.Context, string) (string, error)
+	SetFunc      func(context.Context, string, string) error
+	GetCountFunc func(context.Context) (int, error)
+}
+
+func (m *mockRepo) GetCount(ctx context.Context) (int, error) {
+	if m.GetCountFunc != nil {
+		return m.GetCountFunc(ctx)
+	}
+	return 0, errors.New("not implemented")
 }
 
 func (m *mockRepo) Get(ctx context.Context, key string) (string, error) {
