@@ -1,10 +1,10 @@
 package cache
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"sync"
 
@@ -46,6 +46,17 @@ func (r *Repository) Get(ctx context.Context, s string) (string, error) {
 	return url.(string), nil
 }
 
+func (r *Repository) GetCount(ctx context.Context) (int, error) {
+	count := 0
+
+	r.db.Range(func(k, v interface{}) bool {
+		count++
+		return true
+	})
+
+	return count, nil
+}
+
 func (r *Repository) recovery() error {
 	file, err := os.OpenFile(r.cfg.Repo.SavingFilePath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
@@ -53,16 +64,26 @@ func (r *Repository) recovery() error {
 	}
 	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	stat, err := file.Stat()
+	if err != nil {
+		return err
+	}
+	if stat.Size() == 0 {
+		return nil
+	}
 
-	for scanner.Scan() {
-		var item entities.Item
-
-		err = json.Unmarshal(scanner.Bytes(), &item)
-		if err != nil {
-			return err
+	var items []entities.Item
+	if err := json.NewDecoder(file).Decode(&items); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
 		}
+		return err
+	}
 
+	for _, item := range items {
+		if item.ShortUrl == "" || item.OriginalUrl == "" {
+			continue
+		}
 		r.db.Store(item.ShortUrl, item.OriginalUrl)
 	}
 
@@ -70,32 +91,28 @@ func (r *Repository) recovery() error {
 }
 
 func (r *Repository) save() error {
-	file, err := os.OpenFile(r.cfg.Repo.SavingFilePath, os.O_WRONLY|os.O_CREATE, 0666)
+	file, err := os.OpenFile(r.cfg.Repo.SavingFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	writer := bufio.NewWriter(file)
-
+	items := make([]entities.Item, 0)
 	r.db.Range(func(k, v any) bool {
-		item, err := json.Marshal(entities.Item{
-			ShortUrl:    k.(string),
-			OriginalUrl: v.(string),
+		shortURL, ok1 := k.(string)
+		originalURL, ok2 := v.(string)
+		if !ok1 || !ok2 {
+			return true
+		}
+
+		items = append(items, entities.Item{
+			ShortUrl:    shortURL,
+			OriginalUrl: originalURL,
 		})
-		if err != nil {
-			return false
-		}
-
-		item = append(item, []byte{',', '\n'}...)
-
-		_, err = writer.Write(item)
-		if err != nil {
-			return false
-		}
-
 		return true
-	}) //todo
+	})
 
-	return nil
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(items)
 }

@@ -26,10 +26,24 @@ type Usecase struct {
 type repo interface {
 	Set(ctx context.Context, key, value string) error
 	Get(ctx context.Context, s string) (string, error)
+	GetCount(ctx context.Context) (int, error)
 }
 
 func NewUsecase(l *zap.Logger, repo *cache.Repository) (*Usecase, error) {
 	return &Usecase{log: l.Named("usecase"), repo: repo}, nil
+}
+
+func (u *Usecase) OnStart(ctx context.Context) error {
+	count, err := u.repo.GetCount(ctx)
+	if err != nil {
+		return err
+	}
+
+	u.count.Store(uint64(count))
+
+	u.log.Info("started from", zap.Uint64("count", u.count.Load()))
+
+	return nil
 }
 
 func (u *Usecase) GetByID(ctx context.Context, s string) (string, error) {
