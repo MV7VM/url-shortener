@@ -28,6 +28,7 @@ type Server struct {
 type uc interface {
 	GetByID(context.Context, string) (string, error)
 	CreateShortURL(context.Context, string) (string, error)
+	Ping(ctx context.Context) error
 }
 
 // NewServer wires up Gin, logging and use-case dependencies.
@@ -156,6 +157,18 @@ func (s *Server) GetByID(c *gin.Context) {
 	c.Header("Location", url)
 
 	c.Status(http.StatusTemporaryRedirect)
+}
+
+func (s *Server) Ping(c *gin.Context) {
+	err := s.uc.Ping(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
 }
 
 func validateURL(urlStr string) bool {

@@ -8,6 +8,7 @@ func (s *Server) createController() {
 	// EduGroups routes
 	common.POST("/", s.withLogger(s.gzipMiddleware(s.CreateShortURL)))
 	common.GET("/:id", s.withLogger(s.gzipMiddleware(s.GetByID)))
+	common.GET("/ping", s.withLogger(s.gzipMiddleware(s.Ping)))
 
 	apiGroup := common.Group("/api")
 	apiGroup.POST("/shorten", s.withLogger(s.gzipMiddleware(s.CreateShortURLByBody)))

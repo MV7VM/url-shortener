@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository/cache"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository"
 	"go.uber.org/zap"
 )
 
@@ -27,9 +27,10 @@ type repo interface {
 	Set(ctx context.Context, key, value string) error
 	Get(ctx context.Context, s string) (string, error)
 	GetCount(ctx context.Context) (int, error)
+	Ping(ctx context.Context) error
 }
 
-func NewUsecase(l *zap.Logger, repo *cache.Repository) (*Usecase, error) {
+func NewUsecase(l *zap.Logger, repo *repository.Repo) (*Usecase, error) {
 	return &Usecase{log: l.Named("usecase"), repo: repo}, nil
 }
 
@@ -66,6 +67,16 @@ func (u *Usecase) CreateShortURL(ctx context.Context, url string) (string, error
 	}
 
 	return encodedURL, nil
+}
+
+func (u *Usecase) Ping(ctx context.Context) error {
+	err := u.repo.Ping(ctx)
+	if err != nil {
+		u.log.Error("failed to ping repository", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 func (u *Usecase) shortenURL() string {

@@ -19,6 +19,7 @@ import (
 type mockUsecase struct {
 	GetByIDFunc        func(context.Context, string) (string, error)
 	CreateShortURLFunc func(context.Context, string) (string, error)
+	PingFunc           func(context.Context) error
 }
 
 func (m *mockUsecase) GetByID(ctx context.Context, id string) (string, error) {
@@ -35,11 +36,19 @@ func (m *mockUsecase) CreateShortURL(ctx context.Context, url string) (string, e
 	return "", errors.New("not implemented")
 }
 
+func (m *mockUsecase) Ping(ctx context.Context) error {
+	if m.PingFunc != nil {
+		return m.PingFunc(ctx)
+	}
+	return nil
+}
+
 func setupTestRouter(s *Server) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.POST("/", s.CreateShortURL)
 	router.GET("/:id", s.GetByID)
+	router.GET("/ping", s.Ping)
 	apiGroup := router.Group("/api")
 	apiGroup.POST("/shorten", s.withLogger(s.CreateShortURLByBody))
 	return router
@@ -57,7 +66,11 @@ func TestServer_CreateShortURL_Success(t *testing.T) {
 	server := &Server{
 		logger: logger,
 		uc:     mockUC,
-		cfg:    &config.Model{},
+		cfg: &config.Model{
+			HTTP: config.HTTPConfig{
+				ReturningURL: "http://localhost:8080/",
+			},
+		},
 	}
 
 	router := setupTestRouter(server)
@@ -69,7 +82,7 @@ func TestServer_CreateShortURL_Success(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
-	assert.Equal(t, "abc123", rec.Body.String())
+	assert.Equal(t, "http://localhost:8080/abc123", rec.Body.String())
 }
 
 func TestServer_CreateShortURL_EmptyBody(t *testing.T) {
@@ -132,7 +145,11 @@ func TestServer_CreateShortURL_WithWhitespace(t *testing.T) {
 	server := &Server{
 		logger: logger,
 		uc:     mockUC,
-		cfg:    &config.Model{},
+		cfg: &config.Model{
+			HTTP: config.HTTPConfig{
+				ReturningURL: "http://localhost:8080/",
+			},
+		},
 	}
 
 	router := setupTestRouter(server)
@@ -144,7 +161,7 @@ func TestServer_CreateShortURL_WithWhitespace(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusCreated, rec.Code)
-	assert.Equal(t, "xyz789", rec.Body.String())
+	assert.Equal(t, "http://localhost:8080/xyz789", rec.Body.String())
 }
 
 func TestServer_GetByID_Success(t *testing.T) {
@@ -208,7 +225,11 @@ func TestServer_CreateShortURLByBody_Success(t *testing.T) {
 	server := &Server{
 		logger: logger,
 		uc:     mockUC,
-		cfg:    &config.Model{},
+		cfg: &config.Model{
+			HTTP: config.HTTPConfig{
+				ReturningURL: "http://localhost:8080/",
+			},
+		},
 	}
 
 	router := setupTestRouter(server)
@@ -225,7 +246,58 @@ func TestServer_CreateShortURLByBody_Success(t *testing.T) {
 	var resp CreateShortURLByBodyResp
 	err := json.Unmarshal(rec.Body.Bytes(), &resp)
 	require.NoError(t, err)
-	assert.Equal(t, "abc123", resp.ShortURL)
+	assert.Equal(t, "http://localhost:8080/abc123", resp.ShortURL)
+}
+
+func TestServer_Ping_Success(t *testing.T) {
+	logger := zap.NewNop()
+	mockUC := &mockUsecase{
+		PingFunc: func(ctx context.Context) error {
+			return nil
+		},
+	}
+
+	server := &Server{
+		logger: logger,
+		uc:     mockUC,
+	}
+
+	router := setupTestRouter(server)
+
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestServer_Ping_Error(t *testing.T) {
+	logger := zap.NewNop()
+	mockUC := &mockUsecase{
+		PingFunc: func(ctx context.Context) error {
+			return errors.New("db error")
+		},
+	}
+
+	server := &Server{
+		logger: logger,
+		uc:     mockUC,
+	}
+
+	router := setupTestRouter(server)
+
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+
+	var resp map[string]interface{}
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "db error", resp["error"])
 }
 
 func TestServer_CreateShortURLByBody_InvalidURL(t *testing.T) {

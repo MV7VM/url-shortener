@@ -15,6 +15,7 @@ type mockRepo struct {
 	GetFunc      func(context.Context, string) (string, error)
 	SetFunc      func(context.Context, string, string) error
 	GetCountFunc func(context.Context) (int, error)
+	PingFunc     func(context.Context) error
 }
 
 func (m *mockRepo) GetCount(ctx context.Context) (int, error) {
@@ -36,6 +37,54 @@ func (m *mockRepo) Set(ctx context.Context, key, value string) error {
 		return m.SetFunc(ctx, key, value)
 	}
 	return errors.New("not implemented")
+}
+
+func (m *mockRepo) Ping(ctx context.Context) error {
+	if m.PingFunc != nil {
+		return m.PingFunc(ctx)
+	}
+	return nil
+}
+
+func TestUsecase_OnStart_Success(t *testing.T) {
+	logger := zap.NewNop()
+	mockRepo := &mockRepo{
+		GetCountFunc: func(ctx context.Context) (int, error) {
+			return 5, nil
+		},
+	}
+
+	uc := &Usecase{
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
+	}
+
+	ctx := context.Background()
+	err := uc.OnStart(ctx)
+
+	require.NoError(t, err)
+	assert.Equal(t, uint64(5), uc.count.Load())
+}
+
+func TestUsecase_OnStart_Error(t *testing.T) {
+	logger := zap.NewNop()
+	expectedErr := errors.New("db error")
+	mockRepo := &mockRepo{
+		GetCountFunc: func(ctx context.Context) (int, error) {
+			return 0, expectedErr
+		},
+	}
+
+	uc := &Usecase{
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
+	}
+
+	ctx := context.Background()
+	err := uc.OnStart(ctx)
+
+	require.Error(t, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestNewUsecase(t *testing.T) {

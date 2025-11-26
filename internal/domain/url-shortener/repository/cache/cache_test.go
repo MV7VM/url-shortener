@@ -12,14 +12,14 @@ import (
 )
 
 func TestNewRepository(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 
 	assert.NotNil(t, repo)
 	assert.NotNil(t, repo.db)
 }
 
 func TestRepository_Set_Success(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	err := repo.Set(ctx, "key1", "https://example.com")
@@ -28,7 +28,7 @@ func TestRepository_Set_Success(t *testing.T) {
 }
 
 func TestRepository_Get_Success(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "key1"
 	expectedValue := "https://example.com"
@@ -45,7 +45,7 @@ func TestRepository_Get_Success(t *testing.T) {
 }
 
 func TestRepository_Get_NotFound(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "nonexistent"
 
@@ -57,7 +57,7 @@ func TestRepository_Get_NotFound(t *testing.T) {
 }
 
 func TestRepository_Get_EmptyKey(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	result, err := repo.Get(ctx, "")
@@ -68,7 +68,7 @@ func TestRepository_Get_EmptyKey(t *testing.T) {
 }
 
 func TestRepository_Set_EmptyValue(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	err := repo.Set(ctx, "key1", "")
@@ -81,7 +81,7 @@ func TestRepository_Set_EmptyValue(t *testing.T) {
 }
 
 func TestRepository_Set_Overwrite(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "key1"
 
@@ -101,7 +101,7 @@ func TestRepository_Set_Overwrite(t *testing.T) {
 }
 
 func TestRepository_MultipleKeys(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	// Сохраняем несколько ключей
@@ -123,7 +123,7 @@ func TestRepository_MultipleKeys(t *testing.T) {
 }
 
 func TestRepository_ConcurrentAccess(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	numGoroutines := 100
 
@@ -165,7 +165,7 @@ func TestRepository_ConcurrentAccess(t *testing.T) {
 }
 
 func TestRepository_ConcurrentSet(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	numGoroutines := 50
 
@@ -193,7 +193,7 @@ func TestRepository_ConcurrentSet(t *testing.T) {
 }
 
 func TestRepository_Get_SpecialCharacters(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	testCases := []struct {
@@ -236,7 +236,7 @@ func TestRepository_Get_SpecialCharacters(t *testing.T) {
 }
 
 func TestRepository_Get_LongValue(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "long_key"
 
@@ -258,7 +258,7 @@ func TestRepository_Get_LongValue(t *testing.T) {
 }
 
 func TestRepository_Set_Get_MultipleOperations(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	// Выполняем серию операций Set и Get
@@ -276,7 +276,7 @@ func TestRepository_Set_Get_MultipleOperations(t *testing.T) {
 }
 
 func TestRepository_Get_AfterSetDelete(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "test_key"
 	value := "test_value"
