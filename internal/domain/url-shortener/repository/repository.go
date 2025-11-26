@@ -8,9 +8,17 @@ import (
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository/postgres"
 )
 
+type repository interface {
+	Set(ctx context.Context, key string, value string) error
+	Get(ctx context.Context, s string) (string, error)
+	GetCount(ctx context.Context) (int, error)
+	OnStart(_ context.Context) error
+	OnStop(_ context.Context) error
+}
+
 type Repo struct {
-	cache *cache.Repository
-	psql  *postgres.Repository
+	repository
+	psql *postgres.Repository
 }
 
 func NewRepo(ctx context.Context, cfg *config.Model) (*Repo, error) {
@@ -19,50 +27,61 @@ func NewRepo(ctx context.Context, cfg *config.Model) (*Repo, error) {
 		return nil, err
 	}
 
+	var repo repository
+	if cfg.Repo.PsqlConfig.PsqlConnString == "" {
+		repo = cache.NewRepository(cfg)
+	} else {
+		repo = psql
+	}
+
 	return &Repo{
-		cache: cache.NewRepository(cfg),
-		psql:  psql,
+		repository: repo,
+		psql:       psql,
 	}, nil
 }
 
 func (r *Repo) OnStart(ctx context.Context) error {
-	err := r.cache.OnStart(ctx)
+	err := r.repository.OnStart(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = r.psql.OnStart(ctx)
-	if err != nil {
-		return err
+	if r.repository != r.psql {
+		err = r.psql.OnStart(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (r *Repo) OnStop(ctx context.Context) error {
-	err := r.cache.OnStop(ctx)
+	err := r.repository.OnStop(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = r.psql.OnStop(ctx)
-	if err != nil {
-		return err
+	if r.repository != r.psql {
+		err = r.psql.OnStop(ctx)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (r *Repo) Set(ctx context.Context, key string, value string) error {
-	return r.cache.Set(ctx, key, value)
+	return r.repository.Set(ctx, key, value)
 }
 
 func (r *Repo) Get(ctx context.Context, s string) (string, error) {
-	return r.cache.Get(ctx, s)
+	return r.repository.Get(ctx, s)
 }
 
 func (r *Repo) GetCount(ctx context.Context) (int, error) {
-	return r.cache.GetCount(ctx)
+	return r.repository.GetCount(ctx)
 }
 
 func (r *Repo) Ping(ctx context.Context) error {

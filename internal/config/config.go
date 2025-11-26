@@ -12,7 +12,7 @@ func NewConfig() (*Model, error) {
 	flag.StringVar(&cfg.HTTP.ReturningURL, "b", "http://localhost:8080/", "prefix of returning shart url")
 
 	flag.StringVar(&cfg.Repo.SavingFilePath, "f", "./data.json", "file for recovery storage")
-	flag.StringVar(&cfg.Repo.PsqlConnString, "d", "postgresql://localhost:6132/postgres", "file for recovery storage")
+	flag.StringVar(&cfg.Repo.PsqlConnString, "d", "", "file for recovery storage")
 
 	flag.Parse()
 
