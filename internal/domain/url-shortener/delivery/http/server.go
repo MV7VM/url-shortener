@@ -5,6 +5,8 @@ package http
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -89,6 +91,56 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 	}
 
 	c.String(http.StatusCreated, s.cfg.HTTP.ReturningURL+shortURL)
+}
+
+type CreateShortURLByBodyReq struct {
+	URL string `json:"url"`
+}
+
+type CreateShortURLByBodyResp struct {
+	ShortURL string `json:"result"`
+}
+
+func (s *Server) CreateShortURLByBody(c *gin.Context) {
+	// Получаем raw body
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Failed to read request body",
+		})
+		return
+	}
+
+	// Декодируем JSON в структуру
+	var reqBody CreateShortURLByBodyReq
+
+	err = json.Unmarshal(body, &reqBody)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid JSON format",
+		})
+		return
+	}
+
+	url := strings.TrimSpace(reqBody.URL)
+	if !validateURL(url) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "invalid url",
+		})
+		return
+	}
+
+	shortURL, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, CreateShortURLByBodyResp{
+		ShortURL: s.cfg.HTTP.ReturningURL + shortURL,
+	})
 }
 
 func (s *Server) GetByID(c *gin.Context) {

@@ -40,6 +40,8 @@ func setupTestRouter(s *Server) *gin.Engine {
 	router := gin.New()
 	router.POST("/", s.CreateShortURL)
 	router.GET("/:id", s.GetByID)
+	apiGroup := router.Group("/api")
+	apiGroup.POST("/shorten", s.withLogger(s.CreateShortURLByBody))
 	return router
 }
 
@@ -192,6 +194,90 @@ func TestServer_GetByID_NotFound(t *testing.T) {
 	router.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestServer_CreateShortURLByBody_Success(t *testing.T) {
+	logger := zap.NewNop()
+	mockUC := &mockUsecase{
+		CreateShortURLFunc: func(ctx context.Context, url string) (string, error) {
+			assert.Equal(t, "https://example.com", url)
+			return "abc123", nil
+		},
+	}
+
+	server := &Server{
+		logger: logger,
+		uc:     mockUC,
+		cfg:    &config.Model{},
+	}
+
+	router := setupTestRouter(server)
+
+	reqBody := `{"url":"https://example.com"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusCreated, rec.Code)
+
+	var resp CreateShortURLByBodyResp
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "abc123", resp.ShortURL)
+}
+
+func TestServer_CreateShortURLByBody_InvalidURL(t *testing.T) {
+	logger := zap.NewNop()
+	server := &Server{
+		logger: logger,
+		uc:     &mockUsecase{},
+	}
+
+	router := setupTestRouter(server)
+
+	reqBody := `{"url":""}`
+	req := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "invalid url", resp["error"])
+}
+
+func TestServer_CreateShortURLByBody_UsecaseError(t *testing.T) {
+	logger := zap.NewNop()
+	mockUC := &mockUsecase{
+		CreateShortURLFunc: func(ctx context.Context, url string) (string, error) {
+			return "", errors.New("database error")
+		},
+	}
+
+	server := &Server{
+		logger: logger,
+		uc:     mockUC,
+	}
+
+	router := setupTestRouter(server)
+
+	reqBody := `{"url":"https://example.com"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/shorten", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	var resp map[string]interface{}
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	assert.Equal(t, "database error", resp["error"])
 }
 
 func TestValidateURL(t *testing.T) {

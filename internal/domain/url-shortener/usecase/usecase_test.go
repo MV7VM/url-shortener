@@ -12,8 +12,16 @@ import (
 
 // mockRepo мок для интерфейса repo
 type mockRepo struct {
-	GetFunc func(context.Context, string) (string, error)
-	SetFunc func(context.Context, string, string) error
+	GetFunc      func(context.Context, string) (string, error)
+	SetFunc      func(context.Context, string, string) error
+	GetCountFunc func(context.Context) (int, error)
+}
+
+func (m *mockRepo) GetCount(ctx context.Context) (int, error) {
+	if m.GetCountFunc != nil {
+		return m.GetCountFunc(ctx)
+	}
+	return 0, errors.New("not implemented")
 }
 
 func (m *mockRepo) Get(ctx context.Context, key string) (string, error) {
@@ -36,15 +44,14 @@ func TestNewUsecase(t *testing.T) {
 
 	// Создаем Usecase напрямую для тестов, так как NewUsecase требует *cache.Repository
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: 0,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	assert.NotNil(t, uc)
 	assert.NotNil(t, uc.log)
 	assert.NotNil(t, uc.repo)
-	assert.Equal(t, uint64(0), uc.count)
+	assert.Equal(t, uint64(0), uc.count.Load())
 }
 
 func TestUsecase_GetByID_Success(t *testing.T) {
@@ -60,9 +67,8 @@ func TestUsecase_GetByID_Success(t *testing.T) {
 	}
 
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: 0,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -85,9 +91,8 @@ func TestUsecase_GetByID_RepositoryError(t *testing.T) {
 	}
 
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: 0,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -114,9 +119,8 @@ func TestUsecase_CreateShortURL_Success(t *testing.T) {
 	}
 
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: 0,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -142,9 +146,8 @@ func TestUsecase_CreateShortURL_RepositoryError(t *testing.T) {
 	}
 
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: 0,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -167,9 +170,8 @@ func TestUsecase_CreateShortURL_MultipleSequential(t *testing.T) {
 	}
 
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: 0,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -205,9 +207,8 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 	}
 
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: 0,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -225,7 +226,7 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 
 	// После 63 запросов должен появиться двусимвольный код
 	// Устанавливаем count так, чтобы следующий был 63 (после инкремента)
-	uc.count = 62
+	uc.count.Store(62)
 	shortURL63, _ := uc.CreateShortURL(ctx, "https://example63.com")
 	// 63 в base63 = "ba" (1*63 + 0): alphabet[0]='a', затем 63/63=1, alphabet[1]='b' -> "ba"
 	assert.Equal(t, "cb", shortURL63)
@@ -271,9 +272,8 @@ func TestUsecase_GetByID_EmptyKey(t *testing.T) {
 	}
 
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: 0,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
@@ -294,9 +294,8 @@ func TestUsecase_CreateShortURL_EmptyURL(t *testing.T) {
 	}
 
 	uc := &Usecase{
-		log:   logger.Named("usecase"),
-		repo:  mockRepo,
-		count: 0,
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
 	}
 
 	ctx := context.Background()
