@@ -13,7 +13,7 @@ import (
 // mockRepo мок для интерфейса repo
 type mockRepo struct {
 	GetFunc      func(context.Context, string) (string, error)
-	SetFunc      func(context.Context, string, string) error
+	SetFunc      func(context.Context, string, string) (string, error)
 	GetCountFunc func(context.Context) (int, error)
 	PingFunc     func(context.Context) error
 }
@@ -32,11 +32,11 @@ func (m *mockRepo) Get(ctx context.Context, key string) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (m *mockRepo) Set(ctx context.Context, key, value string) error {
+func (m *mockRepo) Set(ctx context.Context, key, value string) (string, error) {
 	if m.SetFunc != nil {
 		return m.SetFunc(ctx, key, value)
 	}
-	return errors.New("not implemented")
+	return "", errors.New("not implemented")
 }
 
 func (m *mockRepo) Ping(ctx context.Context) error {
@@ -160,10 +160,10 @@ func TestUsecase_CreateShortURL_Success(t *testing.T) {
 	var capturedValue string
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
 			capturedKey = key
 			capturedValue = value
-			return nil
+			return key, nil
 		},
 	}
 
@@ -189,8 +189,8 @@ func TestUsecase_CreateShortURL_RepositoryError(t *testing.T) {
 	expectedError := errors.New("database error")
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
-			return expectedError
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+			return "", expectedError
 		},
 	}
 
@@ -212,9 +212,9 @@ func TestUsecase_CreateShortURL_MultipleSequential(t *testing.T) {
 	keys := make([]string, 0)
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
 			keys = append(keys, key)
-			return nil
+			return key, nil
 		},
 	}
 
@@ -250,8 +250,8 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 	logger := zap.NewNop()
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
-			return nil
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+			return key, nil
 		},
 	}
 
@@ -337,8 +337,8 @@ func TestUsecase_CreateShortURL_EmptyURL(t *testing.T) {
 	logger := zap.NewNop()
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
-			return nil
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+			return "b", nil
 		},
 	}
 
