@@ -47,10 +47,7 @@ func (r *Repo) OnStart(ctx context.Context) error {
 	}
 
 	if r.repository != r.psql {
-		err = r.psql.OnStart(ctx)
-		if err != nil {
-			return err
-		}
+		r.psql.OnStart(ctx)
 	}
 
 	return nil
