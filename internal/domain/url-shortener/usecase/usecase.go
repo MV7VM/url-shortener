@@ -58,16 +58,20 @@ func (u *Usecase) GetByID(ctx context.Context, s string) (string, error) {
 	return url, nil
 }
 
-func (u *Usecase) CreateShortURL(ctx context.Context, url string) (string, error) {
+func (u *Usecase) CreateShortURL(ctx context.Context, url string) (string, bool, error) {
 	encodedURL := u.shortenURL()
 
 	shortURL, err := u.repo.Set(ctx, encodedURL, url)
 	if err != nil {
 		u.log.Error("failed to set url", zap.String("url", url), zap.Error(err))
-		return "", err
+		return "", false, err
 	}
 
-	return shortURL, nil
+	if encodedURL != shortURL {
+		return shortURL, true, nil
+	}
+
+	return shortURL, false, nil
 }
 
 func (u *Usecase) Ping(ctx context.Context) error {

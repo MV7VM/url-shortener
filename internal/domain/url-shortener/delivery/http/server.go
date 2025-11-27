@@ -28,7 +28,7 @@ type Server struct {
 
 type uc interface {
 	GetByID(context.Context, string) (string, error)
-	CreateShortURL(context.Context, string) (string, error)
+	CreateShortURL(context.Context, string) (string, bool, error)
 	Ping(ctx context.Context) error
 	BatchURLs(ctx context.Context, urls []entities.BatchItem) error
 }
@@ -85,11 +85,16 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	shortURL, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
+		return
+	}
+
+	if conflict {
+		c.JSON(http.StatusConflict, s.cfg.HTTP.ReturningURL+shortURL)
 		return
 	}
 
@@ -133,10 +138,17 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 		return
 	}
 
-	shortURL, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
+		})
+		return
+	}
+
+	if conflict {
+		c.JSON(http.StatusConflict, CreateShortURLByBodyResp{
+			ShortURL: s.cfg.HTTP.ReturningURL + shortURL,
 		})
 		return
 	}
@@ -173,7 +185,7 @@ func (s *Server) Ping(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (s *Server) BatchURL(c *gin.Context) {
+func (s *Server) BatchURL(c *gin.Context) { //todo 409
 	var batchedReq []entities.BatchItem
 	if err := c.ShouldBindJSON(&batchedReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
