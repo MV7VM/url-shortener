@@ -82,15 +82,15 @@ func (u *Usecase) Ping(ctx context.Context) error {
 
 func (u *Usecase) BatchURLs(ctx context.Context, urls []entities.BatchItem) error {
 	for i := range urls {
-		urls[i].ShortUrl = u.shortenURL()
+		urls[i].ShortURL = u.shortenURL()
 
-		err := u.repo.Set(ctx, urls[i].ShortUrl, urls[i].OriginalUrl)
+		err := u.repo.Set(ctx, urls[i].ShortURL, urls[i].OriginalURL)
 		if err != nil {
-			u.log.Error("failed to set url", zap.String("url", urls[i].OriginalUrl), zap.Error(err))
+			u.log.Error("failed to set url", zap.String("url", urls[i].OriginalURL), zap.Error(err))
 			return err
 		}
 
-		urls[i].OriginalUrl = ""
+		urls[i].OriginalURL = ""
 	}
 
 	return nil

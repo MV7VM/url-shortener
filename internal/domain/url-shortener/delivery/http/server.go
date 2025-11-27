@@ -198,7 +198,7 @@ func (s *Server) BatchURL(c *gin.Context) {
 	}
 
 	for i := range batchedReq {
-		batchedReq[i].ShortUrl = s.cfg.HTTP.ReturningURL + batchedReq[i].ShortUrl
+		batchedReq[i].ShortURL = s.cfg.HTTP.ReturningURL + batchedReq[i].ShortURL
 	}
 
 	c.JSON(http.StatusCreated, batchedReq)
