@@ -1,5 +1,7 @@
 package entities
 
+type CtxKeyString string
+
 type Item struct {
 	UUID        string `json:"uuid"`
 	ShortURL    string `json:"short_url"`

@@ -8,12 +8,13 @@ import (
 	"context"
 
 	"github.com/MV7VM/url-shortener/internal/config"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-const txKey = "tx"
+const txKey entities.CtxKeyString = "tx"
 
 // -----------------------------------------------------------------------------
 // Pg-repository (Fx-ready)
