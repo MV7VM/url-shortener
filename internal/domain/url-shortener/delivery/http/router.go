@@ -12,4 +12,5 @@ func (s *Server) createController() {
 
 	apiGroup := common.Group("/api")
 	apiGroup.POST("/shorten", s.withLogger(s.gzipMiddleware(s.CreateShortURLByBody)))
+	apiGroup.POST("/shorten/batch", s.withLogger(s.gzipMiddleware(s.BatchURL)))
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository"
 	"go.uber.org/zap"
 )
@@ -74,6 +75,22 @@ func (u *Usecase) Ping(ctx context.Context) error {
 	if err != nil {
 		u.log.Error("failed to ping repository", zap.Error(err))
 		return err
+	}
+
+	return nil
+}
+
+func (u *Usecase) BatchURLs(ctx context.Context, urls []entities.BatchItem) error {
+	for i := range urls {
+		urls[i].ShortUrl = u.shortenURL()
+
+		err := u.repo.Set(ctx, urls[i].ShortUrl, urls[i].OriginalUrl)
+		if err != nil {
+			u.log.Error("failed to set url", zap.String("url", urls[i].OriginalUrl), zap.Error(err))
+			return err
+		}
+
+		urls[i].OriginalUrl = ""
 	}
 
 	return nil

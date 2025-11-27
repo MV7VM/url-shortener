@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/MV7VM/url-shortener/internal/config"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,6 +21,10 @@ type mockUsecase struct {
 	GetByIDFunc        func(context.Context, string) (string, error)
 	CreateShortURLFunc func(context.Context, string) (string, error)
 	PingFunc           func(context.Context) error
+}
+
+func (m *mockUsecase) BatchURLs(ctx context.Context, urls []entities.BatchItem) error {
+	return nil
 }
 
 func (m *mockUsecase) GetByID(ctx context.Context, id string) (string, error) {
