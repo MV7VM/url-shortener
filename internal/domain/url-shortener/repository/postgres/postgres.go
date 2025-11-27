@@ -13,6 +13,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const txKey = "tx"
+
 // -----------------------------------------------------------------------------
 // Pg-repository (Fx-ready)
 // -----------------------------------------------------------------------------
@@ -36,7 +38,7 @@ func (r *Repository) OnStart(ctx context.Context) (err error) {
 	}
 
 	if err = r.withTx(ctx, func(ctxTx context.Context) error {
-		tx := ctxTx.Value("tx").(pgx.Tx)
+		tx := ctxTx.Value(txKey).(pgx.Tx)
 		return r.migrate(ctx, tx)
 	}); err != nil {
 		return err
@@ -145,7 +147,7 @@ func (r *Repository) withTx(ctx context.Context, f func(context.Context) error) 
 	}
 	defer tx.Rollback(ctx)
 
-	ctxTx := context.WithValue(ctx, "tx", tx)
+	ctxTx := context.WithValue(ctx, txKey, tx)
 
 	err = f(ctxTx)
 	if err != nil {
