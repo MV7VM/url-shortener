@@ -94,7 +94,7 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 	}
 
 	if conflict {
-		c.JSON(http.StatusConflict, s.cfg.HTTP.ReturningURL+shortURL)
+		c.String(http.StatusConflict, s.cfg.HTTP.ReturningURL+shortURL)
 		return
 	}
 
