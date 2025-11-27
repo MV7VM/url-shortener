@@ -173,7 +173,7 @@ func TestUsecase_CreateShortURL_Success(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	shortURL, err := uc.CreateShortURL(ctx, inputURL)
+	shortURL, _, err := uc.CreateShortURL(ctx, inputURL)
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, shortURL)
@@ -200,7 +200,7 @@ func TestUsecase_CreateShortURL_RepositoryError(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	shortURL, err := uc.CreateShortURL(ctx, inputURL)
+	shortURL, _, err := uc.CreateShortURL(ctx, inputURL)
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
@@ -226,9 +226,9 @@ func TestUsecase_CreateShortURL_MultipleSequential(t *testing.T) {
 	ctx := context.Background()
 
 	// Создаем несколько URL подряд
-	shortURL1, err1 := uc.CreateShortURL(ctx, "https://example1.com")
-	shortURL2, err2 := uc.CreateShortURL(ctx, "https://example2.com")
-	shortURL3, err3 := uc.CreateShortURL(ctx, "https://example3.com")
+	shortURL1, _, err1 := uc.CreateShortURL(ctx, "https://example1.com")
+	shortURL2, _, err2 := uc.CreateShortURL(ctx, "https://example2.com")
+	shortURL3, _, err3 := uc.CreateShortURL(ctx, "https://example3.com")
 
 	require.NoError(t, err1)
 	require.NoError(t, err2)
@@ -267,16 +267,16 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 	// count = 1 -> base62Encode(2) = 'c'
 	// и так далее
 
-	shortURL1, _ := uc.CreateShortURL(ctx, "https://example1.com")
+	shortURL1, _, _ := uc.CreateShortURL(ctx, "https://example1.com")
 	assert.Equal(t, "b", shortURL1)
 
-	shortURL2, _ := uc.CreateShortURL(ctx, "https://example2.com")
+	shortURL2, _, _ := uc.CreateShortURL(ctx, "https://example2.com")
 	assert.Equal(t, "c", shortURL2)
 
 	// После 63 запросов должен появиться двусимвольный код
 	// Устанавливаем count так, чтобы следующий был 63 (после инкремента)
 	uc.count.Store(62)
-	shortURL63, _ := uc.CreateShortURL(ctx, "https://example63.com")
+	shortURL63, _, _ := uc.CreateShortURL(ctx, "https://example63.com")
 	// 63 в base63 = "ba" (1*63 + 0): alphabet[0]='a', затем 63/63=1, alphabet[1]='b' -> "ba"
 	assert.Equal(t, "cb", shortURL63)
 }
@@ -348,7 +348,7 @@ func TestUsecase_CreateShortURL_EmptyURL(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	shortURL, err := uc.CreateShortURL(ctx, "")
+	shortURL, _, err := uc.CreateShortURL(ctx, "")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, shortURL)

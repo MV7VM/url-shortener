@@ -19,7 +19,7 @@ import (
 
 type mockUsecase struct {
 	GetByIDFunc        func(context.Context, string) (string, error)
-	CreateShortURLFunc func(context.Context, string) (string, error)
+	CreateShortURLFunc func(context.Context, string) (string, bool, error)
 	PingFunc           func(context.Context) error
 }
 
@@ -34,11 +34,11 @@ func (m *mockUsecase) GetByID(ctx context.Context, id string) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (m *mockUsecase) CreateShortURL(ctx context.Context, url string) (string, error) {
+func (m *mockUsecase) CreateShortURL(ctx context.Context, url string) (string, bool, error) {
 	if m.CreateShortURLFunc != nil {
 		return m.CreateShortURLFunc(ctx, url)
 	}
-	return "", errors.New("not implemented")
+	return "", false, errors.New("not implemented")
 }
 
 func (m *mockUsecase) Ping(ctx context.Context) error {
@@ -62,9 +62,9 @@ func setupTestRouter(s *Server) *gin.Engine {
 func TestServer_CreateShortURL_Success(t *testing.T) {
 	logger := zap.NewNop()
 	mockUC := &mockUsecase{
-		CreateShortURLFunc: func(ctx context.Context, url string) (string, error) {
+		CreateShortURLFunc: func(ctx context.Context, url string) (string, bool, error) {
 			assert.Equal(t, "https://example.com", url)
-			return "abc123", nil
+			return "abc123", false, nil
 		},
 	}
 
@@ -112,8 +112,8 @@ func TestServer_CreateShortURL_EmptyBody(t *testing.T) {
 func TestServer_CreateShortURL_UsecaseError(t *testing.T) {
 	logger := zap.NewNop()
 	mockUC := &mockUsecase{
-		CreateShortURLFunc: func(ctx context.Context, url string) (string, error) {
-			return "", errors.New("database error")
+		CreateShortURLFunc: func(ctx context.Context, url string) (string, bool, error) {
+			return "", false, errors.New("database error")
 		},
 	}
 
@@ -141,9 +141,9 @@ func TestServer_CreateShortURL_UsecaseError(t *testing.T) {
 func TestServer_CreateShortURL_WithWhitespace(t *testing.T) {
 	logger := zap.NewNop()
 	mockUC := &mockUsecase{
-		CreateShortURLFunc: func(ctx context.Context, url string) (string, error) {
+		CreateShortURLFunc: func(ctx context.Context, url string) (string, bool, error) {
 			assert.Equal(t, "https://example.com", url)
-			return "xyz789", nil
+			return "xyz789", false, nil
 		},
 	}
 
@@ -221,9 +221,9 @@ func TestServer_GetByID_NotFound(t *testing.T) {
 func TestServer_CreateShortURLByBody_Success(t *testing.T) {
 	logger := zap.NewNop()
 	mockUC := &mockUsecase{
-		CreateShortURLFunc: func(ctx context.Context, url string) (string, error) {
+		CreateShortURLFunc: func(ctx context.Context, url string) (string, bool, error) {
 			assert.Equal(t, "https://example.com", url)
-			return "abc123", nil
+			return "abc123", false, nil
 		},
 	}
 
@@ -331,8 +331,8 @@ func TestServer_CreateShortURLByBody_InvalidURL(t *testing.T) {
 func TestServer_CreateShortURLByBody_UsecaseError(t *testing.T) {
 	logger := zap.NewNop()
 	mockUC := &mockUsecase{
-		CreateShortURLFunc: func(ctx context.Context, url string) (string, error) {
-			return "", errors.New("database error")
+		CreateShortURLFunc: func(ctx context.Context, url string) (string, bool, error) {
+			return "", false, errors.New("database error")
 		},
 	}
 
