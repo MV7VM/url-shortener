@@ -69,14 +69,19 @@ const qSet = `
 INSERT INTO 
     shortener.urls (short_url, url) 
 VALUES 
-    ($1, $2)`
+    ($1, $2) 
+ON CONFLICT (url) DO UPDATE 
+    SET short_url = shortener.urls.short_url 
+RETURNING short_url
+`
 
-func (r *Repository) Set(ctx context.Context, key string, value string) error {
-	if _, err := r.db.Exec(ctx, qSet, key, value); err != nil {
-		return err
+func (r *Repository) Set(ctx context.Context, key string, value string) (string, error) {
+	var storedKey string
+	if err := r.db.QueryRow(ctx, qSet, key, value).Scan(&storedKey); err != nil {
+		return "", err
 	}
 
-	return nil
+	return storedKey, nil
 }
 
 const qGet = `
@@ -130,8 +135,8 @@ func (r *Repository) migrate(ctx context.Context, tx pgx.Tx) error {
 	// Создаем таблицу urls, если её нет
 	_, err = execFunc(ctx, `
 		CREATE TABLE IF NOT EXISTS shortener.urls (
-			short_url TEXT PRIMARY KEY,
-			url TEXT NOT NULL
+			short_url TEXT PRIMARY KEY, 
+			url TEXT NOT NULL unique 
 		)
 	`)
 	if err != nil {

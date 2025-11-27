@@ -9,7 +9,7 @@ import (
 )
 
 type repository interface {
-	Set(ctx context.Context, key string, value string) error
+	Set(ctx context.Context, key string, value string) (string, error)
 	Get(ctx context.Context, s string) (string, error)
 	GetCount(ctx context.Context) (int, error)
 	OnStart(_ context.Context) error
@@ -69,7 +69,7 @@ func (r *Repo) OnStop(ctx context.Context) error {
 	return nil
 }
 
-func (r *Repo) Set(ctx context.Context, key string, value string) error {
+func (r *Repo) Set(ctx context.Context, key string, value string) (string, error) {
 	return r.repository.Set(ctx, key, value)
 }
 

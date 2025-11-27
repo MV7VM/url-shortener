@@ -25,7 +25,7 @@ type Usecase struct {
 }
 
 type repo interface {
-	Set(ctx context.Context, key, value string) error
+	Set(ctx context.Context, key, value string) (string, error)
 	Get(ctx context.Context, s string) (string, error)
 	GetCount(ctx context.Context) (int, error)
 	Ping(ctx context.Context) error
@@ -61,13 +61,13 @@ func (u *Usecase) GetByID(ctx context.Context, s string) (string, error) {
 func (u *Usecase) CreateShortURL(ctx context.Context, url string) (string, error) {
 	encodedURL := u.shortenURL()
 
-	err := u.repo.Set(ctx, encodedURL, url)
+	shortURL, err := u.repo.Set(ctx, encodedURL, url)
 	if err != nil {
 		u.log.Error("failed to set url", zap.String("url", url), zap.Error(err))
 		return "", err
 	}
 
-	return encodedURL, nil
+	return shortURL, nil
 }
 
 func (u *Usecase) Ping(ctx context.Context) error {
@@ -84,13 +84,14 @@ func (u *Usecase) BatchURLs(ctx context.Context, urls []entities.BatchItem) erro
 	for i := range urls {
 		urls[i].ShortURL = u.shortenURL()
 
-		err := u.repo.Set(ctx, urls[i].ShortURL, urls[i].OriginalURL)
+		shortURL, err := u.repo.Set(ctx, urls[i].ShortURL, urls[i].OriginalURL)
 		if err != nil {
 			u.log.Error("failed to set url", zap.String("url", urls[i].OriginalURL), zap.Error(err))
 			return err
 		}
 
 		urls[i].OriginalURL = ""
+		urls[i].ShortURL = shortURL
 	}
 
 	return nil

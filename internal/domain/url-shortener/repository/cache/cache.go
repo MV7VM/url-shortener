@@ -32,9 +32,9 @@ func (r *Repository) OnStop(_ context.Context) error {
 	return r.save()
 }
 
-func (r *Repository) Set(_ context.Context, key, value string) error {
+func (r *Repository) Set(_ context.Context, key, value string) (string, error) {
 	r.db.Store(key, value)
-	return nil
+	return key, nil
 }
 
 func (r *Repository) Get(_ context.Context, s string) (string, error) {
