@@ -39,13 +39,13 @@ func (s *Server) auth(c *gin.Context) {
 		}
 
 		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     "auth",
-			Value:    token,
-			Path:     "/",
-			HttpOnly: true,
-			Secure:   true,
-			SameSite: http.SameSiteNoneMode,
-			MaxAge:   0,
+			Name:  "auth",
+			Value: token,
+			Path:  "/",
+			//HttpOnly: true,
+			//Secure:   true,
+			//SameSite: http.SameSiteNoneMode,
+			MaxAge: 0,
 		})
 	}
 

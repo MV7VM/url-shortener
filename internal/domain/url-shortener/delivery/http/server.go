@@ -231,6 +231,10 @@ func (s *Server) GetUsersUrls(c *gin.Context) {
 		return
 	}
 
+	for i := range urls {
+		urls[i].ShortURL = s.cfg.HTTP.ReturningURL + urls[i].ShortURL
+	}
+
 	c.JSON(http.StatusOK, urls)
 }
 
