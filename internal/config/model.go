@@ -8,8 +8,18 @@ type Model struct {
 type HTTPConfig struct {
 	Host         string
 	ReturningURL string
+	SecretToken  string
 }
 
 type RepoConfig struct {
+	CacheConfig
+	PsqlConfig
+}
+
+type CacheConfig struct {
 	SavingFilePath string
+}
+
+type PsqlConfig struct {
+	PsqlConnString string
 }

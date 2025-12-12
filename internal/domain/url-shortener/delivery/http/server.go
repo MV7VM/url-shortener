@@ -6,12 +6,14 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/MV7VM/url-shortener/internal/config"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +29,10 @@ type Server struct {
 
 type uc interface {
 	GetByID(context.Context, string) (string, error)
-	CreateShortURL(context.Context, string) (string, error)
+	CreateShortURL(context.Context, string, string) (string, bool, error)
+	Ping(ctx context.Context) error
+	BatchURLs(ctx context.Context, urls []entities.BatchItem, userID string) error
+	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
 }
 
 // NewServer wires up Gin, logging and use-case dependencies.
@@ -65,6 +70,7 @@ func (s *Server) OnStop(_ context.Context) error {
 }
 
 func (s *Server) CreateShortURL(c *gin.Context) {
+	fmt.Println(c.GetString("userID"))
 	// Получаем raw body
 	body, err := c.GetRawData()
 	if err != nil {
@@ -82,11 +88,16 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	shortURL, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url, c.GetString("userID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
+		return
+	}
+
+	if conflict {
+		c.String(http.StatusConflict, s.cfg.HTTP.ReturningURL+shortURL)
 		return
 	}
 
@@ -130,10 +141,17 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 		return
 	}
 
-	shortURL, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url, c.GetString("userID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
+		})
+		return
+	}
+
+	if conflict {
+		c.JSON(http.StatusConflict, CreateShortURLByBodyResp{
+			ShortURL: s.cfg.HTTP.ReturningURL + shortURL,
 		})
 		return
 	}
@@ -146,7 +164,7 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 func (s *Server) GetByID(c *gin.Context) {
 	id := c.Param("id")
 
-	url, err := s.uc.GetByID(c, id)
+	url, err := s.uc.GetByID(c.Request.Context(), id)
 	if err != nil {
 		s.logger.Error("failed to get url", zap.String("url", id), zap.Error(err))
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -156,6 +174,68 @@ func (s *Server) GetByID(c *gin.Context) {
 	c.Header("Location", url)
 
 	c.Status(http.StatusTemporaryRedirect)
+}
+
+func (s *Server) Ping(c *gin.Context) {
+	err := s.uc.Ping(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (s *Server) BatchURL(c *gin.Context) { //todo 409
+	var batchedReq []entities.BatchItem
+	if err := c.ShouldBindJSON(&batchedReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to read request body",
+		})
+		return
+	}
+
+	if len(batchedReq) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "batch payload is empty",
+		})
+		return
+	}
+
+	err := s.uc.BatchURLs(c.Request.Context(), batchedReq, c.GetString("userID"))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	for i := range batchedReq {
+		batchedReq[i].ShortURL = s.cfg.HTTP.ReturningURL + batchedReq[i].ShortURL
+	}
+
+	c.JSON(http.StatusCreated, batchedReq)
+}
+
+func (s *Server) GetUsersUrls(c *gin.Context) {
+	urls, err := s.uc.GetUsersUrls(c.Request.Context(), c.GetString("userID"))
+	if err != nil {
+		s.logger.Error("failed to get urls", zap.Error(err))
+		return
+	}
+
+	if len(urls) == 0 {
+		c.AbortWithStatus(http.StatusNoContent)
+		return
+	}
+
+	for i := range urls {
+		urls[i].ShortURL = s.cfg.HTTP.ReturningURL + urls[i].ShortURL
+	}
+
+	c.JSON(http.StatusOK, urls)
 }
 
 func validateURL(urlStr string) bool {
