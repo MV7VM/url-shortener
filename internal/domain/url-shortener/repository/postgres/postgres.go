@@ -134,7 +134,7 @@ func (r *Repository) GetUsersUrls(ctx context.Context, userID string) ([]entitie
 
 	for rows.Next() {
 		url := entities.Item{}
-		err = rows.Scan(&url.ShortURL, &url.ShortURL)
+		err = rows.Scan(&url.ShortURL, &url.OriginalURL)
 		if err != nil {
 			return nil, err
 		}

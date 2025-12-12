@@ -57,24 +57,8 @@ func (s *Server) auth(c *gin.Context) {
 
 	err = s.parseToken(c)
 	if err != nil {
-		token := ""
-		token, userID, err = s.createAuthToken()
-		if err != nil {
-			c.AbortWithStatus(http.StatusInternalServerError)
-			return
-		}
-
-		http.SetCookie(c.Writer, &http.Cookie{
-			Name:     "auth",
-			Value:    token,
-			Path:     "/",
-			HttpOnly: true,
-			Secure:   true,
-			SameSite: http.SameSiteNoneMode,
-			MaxAge:   0,
-		})
-
-		s.parseToken(c)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 
 	c.Next()
