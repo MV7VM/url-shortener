@@ -13,8 +13,9 @@ import (
 // mockRepo мок для интерфейса repo
 type mockRepo struct {
 	GetFunc      func(context.Context, string) (string, error)
-	SetFunc      func(context.Context, string, string) error
+	SetFunc      func(context.Context, string, string) (string, error)
 	GetCountFunc func(context.Context) (int, error)
+	PingFunc     func(context.Context) error
 }
 
 func (m *mockRepo) GetCount(ctx context.Context) (int, error) {
@@ -31,11 +32,59 @@ func (m *mockRepo) Get(ctx context.Context, key string) (string, error) {
 	return "", errors.New("not implemented")
 }
 
-func (m *mockRepo) Set(ctx context.Context, key, value string) error {
+func (m *mockRepo) Set(ctx context.Context, key, value string) (string, error) {
 	if m.SetFunc != nil {
 		return m.SetFunc(ctx, key, value)
 	}
-	return errors.New("not implemented")
+	return "", errors.New("not implemented")
+}
+
+func (m *mockRepo) Ping(ctx context.Context) error {
+	if m.PingFunc != nil {
+		return m.PingFunc(ctx)
+	}
+	return nil
+}
+
+func TestUsecase_OnStart_Success(t *testing.T) {
+	logger := zap.NewNop()
+	mockRepo := &mockRepo{
+		GetCountFunc: func(ctx context.Context) (int, error) {
+			return 5, nil
+		},
+	}
+
+	uc := &Usecase{
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
+	}
+
+	ctx := context.Background()
+	err := uc.OnStart(ctx)
+
+	require.NoError(t, err)
+	assert.Equal(t, uint64(5), uc.count.Load())
+}
+
+func TestUsecase_OnStart_Error(t *testing.T) {
+	logger := zap.NewNop()
+	expectedErr := errors.New("db error")
+	mockRepo := &mockRepo{
+		GetCountFunc: func(ctx context.Context) (int, error) {
+			return 0, expectedErr
+		},
+	}
+
+	uc := &Usecase{
+		log:  logger.Named("usecase"),
+		repo: mockRepo,
+	}
+
+	ctx := context.Background()
+	err := uc.OnStart(ctx)
+
+	require.Error(t, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestNewUsecase(t *testing.T) {
@@ -111,10 +160,10 @@ func TestUsecase_CreateShortURL_Success(t *testing.T) {
 	var capturedValue string
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
 			capturedKey = key
 			capturedValue = value
-			return nil
+			return key, nil
 		},
 	}
 
@@ -124,7 +173,7 @@ func TestUsecase_CreateShortURL_Success(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	shortURL, err := uc.CreateShortURL(ctx, inputURL)
+	shortURL, _, err := uc.CreateShortURL(ctx, inputURL)
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, shortURL)
@@ -140,8 +189,8 @@ func TestUsecase_CreateShortURL_RepositoryError(t *testing.T) {
 	expectedError := errors.New("database error")
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
-			return expectedError
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+			return "", expectedError
 		},
 	}
 
@@ -151,7 +200,7 @@ func TestUsecase_CreateShortURL_RepositoryError(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	shortURL, err := uc.CreateShortURL(ctx, inputURL)
+	shortURL, _, err := uc.CreateShortURL(ctx, inputURL)
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
@@ -163,9 +212,9 @@ func TestUsecase_CreateShortURL_MultipleSequential(t *testing.T) {
 	keys := make([]string, 0)
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
 			keys = append(keys, key)
-			return nil
+			return key, nil
 		},
 	}
 
@@ -177,9 +226,9 @@ func TestUsecase_CreateShortURL_MultipleSequential(t *testing.T) {
 	ctx := context.Background()
 
 	// Создаем несколько URL подряд
-	shortURL1, err1 := uc.CreateShortURL(ctx, "https://example1.com")
-	shortURL2, err2 := uc.CreateShortURL(ctx, "https://example2.com")
-	shortURL3, err3 := uc.CreateShortURL(ctx, "https://example3.com")
+	shortURL1, _, err1 := uc.CreateShortURL(ctx, "https://example1.com")
+	shortURL2, _, err2 := uc.CreateShortURL(ctx, "https://example2.com")
+	shortURL3, _, err3 := uc.CreateShortURL(ctx, "https://example3.com")
 
 	require.NoError(t, err1)
 	require.NoError(t, err2)
@@ -201,8 +250,8 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 	logger := zap.NewNop()
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
-			return nil
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+			return key, nil
 		},
 	}
 
@@ -218,16 +267,16 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 	// count = 1 -> base62Encode(2) = 'c'
 	// и так далее
 
-	shortURL1, _ := uc.CreateShortURL(ctx, "https://example1.com")
+	shortURL1, _, _ := uc.CreateShortURL(ctx, "https://example1.com")
 	assert.Equal(t, "b", shortURL1)
 
-	shortURL2, _ := uc.CreateShortURL(ctx, "https://example2.com")
+	shortURL2, _, _ := uc.CreateShortURL(ctx, "https://example2.com")
 	assert.Equal(t, "c", shortURL2)
 
 	// После 63 запросов должен появиться двусимвольный код
 	// Устанавливаем count так, чтобы следующий был 63 (после инкремента)
 	uc.count.Store(62)
-	shortURL63, _ := uc.CreateShortURL(ctx, "https://example63.com")
+	shortURL63, _, _ := uc.CreateShortURL(ctx, "https://example63.com")
 	// 63 в base63 = "ba" (1*63 + 0): alphabet[0]='a', затем 63/63=1, alphabet[1]='b' -> "ba"
 	assert.Equal(t, "cb", shortURL63)
 }
@@ -288,8 +337,8 @@ func TestUsecase_CreateShortURL_EmptyURL(t *testing.T) {
 	logger := zap.NewNop()
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) error {
-			return nil
+		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+			return "b", nil
 		},
 	}
 
@@ -299,7 +348,7 @@ func TestUsecase_CreateShortURL_EmptyURL(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	shortURL, err := uc.CreateShortURL(ctx, "")
+	shortURL, _, err := uc.CreateShortURL(ctx, "")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, shortURL)

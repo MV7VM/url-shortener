@@ -12,29 +12,29 @@ import (
 )
 
 func TestNewRepository(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 
 	assert.NotNil(t, repo)
 	assert.NotNil(t, repo.db)
 }
 
 func TestRepository_Set_Success(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
-	err := repo.Set(ctx, "key1", "https://example.com")
+	_, err := repo.Set(ctx, "key1", "https://example.com")
 
 	assert.NoError(t, err)
 }
 
 func TestRepository_Get_Success(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "key1"
 	expectedValue := "https://example.com"
 
 	// Сначала сохраняем значение
-	err := repo.Set(ctx, key, expectedValue)
+	_, err := repo.Set(ctx, key, expectedValue)
 	require.NoError(t, err)
 
 	// Затем получаем его
@@ -45,7 +45,7 @@ func TestRepository_Get_Success(t *testing.T) {
 }
 
 func TestRepository_Get_NotFound(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "nonexistent"
 
@@ -57,7 +57,7 @@ func TestRepository_Get_NotFound(t *testing.T) {
 }
 
 func TestRepository_Get_EmptyKey(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	result, err := repo.Get(ctx, "")
@@ -68,10 +68,10 @@ func TestRepository_Get_EmptyKey(t *testing.T) {
 }
 
 func TestRepository_Set_EmptyValue(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
-	err := repo.Set(ctx, "key1", "")
+	_, err := repo.Set(ctx, "key1", "")
 	require.NoError(t, err)
 
 	result, err := repo.Get(ctx, "key1")
@@ -81,16 +81,16 @@ func TestRepository_Set_EmptyValue(t *testing.T) {
 }
 
 func TestRepository_Set_Overwrite(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "key1"
 
 	// Сохраняем первое значение
-	err1 := repo.Set(ctx, key, "https://example1.com")
+	_, err1 := repo.Set(ctx, key, "https://example1.com")
 	require.NoError(t, err1)
 
 	// Перезаписываем значением
-	err2 := repo.Set(ctx, key, "https://example2.com")
+	_, err2 := repo.Set(ctx, key, "https://example2.com")
 	require.NoError(t, err2)
 
 	// Проверяем, что получили новое значение
@@ -101,7 +101,7 @@ func TestRepository_Set_Overwrite(t *testing.T) {
 }
 
 func TestRepository_MultipleKeys(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	// Сохраняем несколько ключей
@@ -123,7 +123,7 @@ func TestRepository_MultipleKeys(t *testing.T) {
 }
 
 func TestRepository_ConcurrentAccess(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	numGoroutines := 100
 
@@ -136,7 +136,7 @@ func TestRepository_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			key := fmt.Sprintf("key%d", id)
 			value := fmt.Sprintf("https://example.com/%d", id)
-			err := repo.Set(ctx, key, value)
+			_, err := repo.Set(ctx, key, value)
 			assert.NoError(t, err)
 		}(i)
 	}
@@ -165,7 +165,7 @@ func TestRepository_ConcurrentAccess(t *testing.T) {
 }
 
 func TestRepository_ConcurrentSet(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	numGoroutines := 50
 
@@ -178,7 +178,7 @@ func TestRepository_ConcurrentSet(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			value := fmt.Sprintf("value%d", id)
-			err := repo.Set(ctx, key, value)
+			_, err := repo.Set(ctx, key, value)
 			assert.NoError(t, err)
 		}(i)
 	}
@@ -193,7 +193,7 @@ func TestRepository_ConcurrentSet(t *testing.T) {
 }
 
 func TestRepository_Get_SpecialCharacters(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	testCases := []struct {
@@ -225,7 +225,7 @@ func TestRepository_Get_SpecialCharacters(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := repo.Set(ctx, tc.key, tc.value)
+			_, err := repo.Set(ctx, tc.key, tc.value)
 			require.NoError(t, err)
 
 			result, err := repo.Get(ctx, tc.key)
@@ -236,7 +236,7 @@ func TestRepository_Get_SpecialCharacters(t *testing.T) {
 }
 
 func TestRepository_Get_LongValue(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "long_key"
 
@@ -247,7 +247,7 @@ func TestRepository_Get_LongValue(t *testing.T) {
 	}
 	value := string(longValue)
 
-	err := repo.Set(ctx, key, value)
+	_, err := repo.Set(ctx, key, value)
 	require.NoError(t, err)
 
 	result, err := repo.Get(ctx, key)
@@ -258,7 +258,7 @@ func TestRepository_Get_LongValue(t *testing.T) {
 }
 
 func TestRepository_Set_Get_MultipleOperations(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
 	// Выполняем серию операций Set и Get
@@ -266,7 +266,7 @@ func TestRepository_Set_Get_MultipleOperations(t *testing.T) {
 		key := fmt.Sprintf("key%d", i)
 		value := fmt.Sprintf("value%d", i)
 
-		err := repo.Set(ctx, key, value)
+		_, err := repo.Set(ctx, key, value)
 		require.NoError(t, err)
 
 		result, err := repo.Get(ctx, key)
@@ -276,13 +276,13 @@ func TestRepository_Set_Get_MultipleOperations(t *testing.T) {
 }
 
 func TestRepository_Get_AfterSetDelete(t *testing.T) {
-	repo := NewRepository(&config.Model{Repo: config.RepoConfig{SavingFilePath: "./data.json"}})
+	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 	key := "test_key"
 	value := "test_value"
 
 	// Сохраняем значение
-	err := repo.Set(ctx, key, value)
+	_, err := repo.Set(ctx, key, value)
 	require.NoError(t, err)
 
 	// Проверяем, что значение есть
@@ -293,7 +293,7 @@ func TestRepository_Get_AfterSetDelete(t *testing.T) {
 	// sync.Map не имеет метода Delete в нашем интерфейсе, но можно проверить
 	// что если мы перезапишем с другим значением, старое исчезнет
 	newValue := "new_value"
-	err = repo.Set(ctx, key, newValue)
+	_, err = repo.Set(ctx, key, newValue)
 	require.NoError(t, err)
 
 	result, err = repo.Get(ctx, key)

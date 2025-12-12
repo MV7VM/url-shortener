@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/MV7VM/url-shortener/internal/config"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,9 @@ type Server struct {
 
 type uc interface {
 	GetByID(context.Context, string) (string, error)
-	CreateShortURL(context.Context, string) (string, error)
+	CreateShortURL(context.Context, string) (string, bool, error)
+	Ping(ctx context.Context) error
+	BatchURLs(ctx context.Context, urls []entities.BatchItem) error
 }
 
 // NewServer wires up Gin, logging and use-case dependencies.
@@ -82,11 +85,16 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	shortURL, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
 		})
+		return
+	}
+
+	if conflict {
+		c.String(http.StatusConflict, s.cfg.HTTP.ReturningURL+shortURL)
 		return
 	}
 
@@ -130,10 +138,17 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 		return
 	}
 
-	shortURL, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
+		})
+		return
+	}
+
+	if conflict {
+		c.JSON(http.StatusConflict, CreateShortURLByBodyResp{
+			ShortURL: s.cfg.HTTP.ReturningURL + shortURL,
 		})
 		return
 	}
@@ -156,6 +171,49 @@ func (s *Server) GetByID(c *gin.Context) {
 	c.Header("Location", url)
 
 	c.Status(http.StatusTemporaryRedirect)
+}
+
+func (s *Server) Ping(c *gin.Context) {
+	err := s.uc.Ping(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func (s *Server) BatchURL(c *gin.Context) { //todo 409
+	var batchedReq []entities.BatchItem
+	if err := c.ShouldBindJSON(&batchedReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "failed to read request body",
+		})
+		return
+	}
+
+	if len(batchedReq) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "batch payload is empty",
+		})
+		return
+	}
+
+	err := s.uc.BatchURLs(c, batchedReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	for i := range batchedReq {
+		batchedReq[i].ShortURL = s.cfg.HTTP.ReturningURL + batchedReq[i].ShortURL
+	}
+
+	c.JSON(http.StatusCreated, batchedReq)
 }
 
 func validateURL(urlStr string) bool {

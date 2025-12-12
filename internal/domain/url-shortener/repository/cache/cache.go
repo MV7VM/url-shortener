@@ -32,12 +32,12 @@ func (r *Repository) OnStop(_ context.Context) error {
 	return r.save()
 }
 
-func (r *Repository) Set(ctx context.Context, key, value string) error {
+func (r *Repository) Set(_ context.Context, key, value string) (string, error) {
 	r.db.Store(key, value)
-	return nil
+	return key, nil
 }
 
-func (r *Repository) Get(ctx context.Context, s string) (string, error) {
+func (r *Repository) Get(_ context.Context, s string) (string, error) {
 	url, ok := r.db.Load(s)
 	if _, okString := url.(string); !okString || !ok || url == nil {
 		return "", errors.New("not found")
@@ -46,7 +46,7 @@ func (r *Repository) Get(ctx context.Context, s string) (string, error) {
 	return url.(string), nil
 }
 
-func (r *Repository) GetCount(ctx context.Context) (int, error) {
+func (r *Repository) GetCount(_ context.Context) (int, error) {
 	count := 0
 
 	r.db.Range(func(k, v interface{}) bool {
