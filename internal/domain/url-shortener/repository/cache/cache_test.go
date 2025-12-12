@@ -22,7 +22,7 @@ func TestRepository_Set_Success(t *testing.T) {
 	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
-	_, err := repo.Set(ctx, "key1", "https://example.com")
+	_, err := repo.Set(ctx, "key1", "https://example.com, ", "")
 
 	assert.NoError(t, err)
 }
@@ -34,7 +34,7 @@ func TestRepository_Get_Success(t *testing.T) {
 	expectedValue := "https://example.com"
 
 	// Сначала сохраняем значение
-	_, err := repo.Set(ctx, key, expectedValue)
+	_, err := repo.Set(ctx, key, expectedValue, "")
 	require.NoError(t, err)
 
 	// Затем получаем его
@@ -71,7 +71,7 @@ func TestRepository_Set_EmptyValue(t *testing.T) {
 	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
-	_, err := repo.Set(ctx, "key1", "")
+	_, err := repo.Set(ctx, "key1", "", "")
 	require.NoError(t, err)
 
 	result, err := repo.Get(ctx, "key1")
@@ -86,11 +86,11 @@ func TestRepository_Set_Overwrite(t *testing.T) {
 	key := "key1"
 
 	// Сохраняем первое значение
-	_, err1 := repo.Set(ctx, key, "https://example1.com")
+	_, err1 := repo.Set(ctx, key, "https://example1.com", "")
 	require.NoError(t, err1)
 
 	// Перезаписываем значением
-	_, err2 := repo.Set(ctx, key, "https://example2.com")
+	_, err2 := repo.Set(ctx, key, "https://example2.com", "")
 	require.NoError(t, err2)
 
 	// Проверяем, что получили новое значение
@@ -105,9 +105,9 @@ func TestRepository_MultipleKeys(t *testing.T) {
 	ctx := context.Background()
 
 	// Сохраняем несколько ключей
-	repo.Set(ctx, "key1", "https://example1.com")
-	repo.Set(ctx, "key2", "https://example2.com")
-	repo.Set(ctx, "key3", "https://example3.com")
+	repo.Set(ctx, "key1", "https://example1.com", "")
+	repo.Set(ctx, "key2", "https://example2.com", "")
+	repo.Set(ctx, "key3", "https://example3.com", "")
 
 	// Получаем все ключи
 	value1, err1 := repo.Get(ctx, "key1")
@@ -136,7 +136,7 @@ func TestRepository_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			key := fmt.Sprintf("key%d", id)
 			value := fmt.Sprintf("https://example.com/%d", id)
-			_, err := repo.Set(ctx, key, value)
+			_, err := repo.Set(ctx, key, value, "")
 			assert.NoError(t, err)
 		}(i)
 	}
@@ -178,7 +178,7 @@ func TestRepository_ConcurrentSet(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			value := fmt.Sprintf("value%d", id)
-			_, err := repo.Set(ctx, key, value)
+			_, err := repo.Set(ctx, key, value, "")
 			assert.NoError(t, err)
 		}(i)
 	}
@@ -225,7 +225,7 @@ func TestRepository_Get_SpecialCharacters(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, err := repo.Set(ctx, tc.key, tc.value)
+			_, err := repo.Set(ctx, tc.key, tc.value, "")
 			require.NoError(t, err)
 
 			result, err := repo.Get(ctx, tc.key)
@@ -247,7 +247,7 @@ func TestRepository_Get_LongValue(t *testing.T) {
 	}
 	value := string(longValue)
 
-	_, err := repo.Set(ctx, key, value)
+	_, err := repo.Set(ctx, key, value, "")
 	require.NoError(t, err)
 
 	result, err := repo.Get(ctx, key)
@@ -266,7 +266,7 @@ func TestRepository_Set_Get_MultipleOperations(t *testing.T) {
 		key := fmt.Sprintf("key%d", i)
 		value := fmt.Sprintf("value%d", i)
 
-		_, err := repo.Set(ctx, key, value)
+		_, err := repo.Set(ctx, key, value, "")
 		require.NoError(t, err)
 
 		result, err := repo.Get(ctx, key)
@@ -282,7 +282,7 @@ func TestRepository_Get_AfterSetDelete(t *testing.T) {
 	value := "test_value"
 
 	// Сохраняем значение
-	_, err := repo.Set(ctx, key, value)
+	_, err := repo.Set(ctx, key, value, "")
 	require.NoError(t, err)
 
 	// Проверяем, что значение есть
@@ -293,7 +293,7 @@ func TestRepository_Get_AfterSetDelete(t *testing.T) {
 	// sync.Map не имеет метода Delete в нашем интерфейсе, но можно проверить
 	// что если мы перезапишем с другим значением, старое исчезнет
 	newValue := "new_value"
-	_, err = repo.Set(ctx, key, newValue)
+	_, err = repo.Set(ctx, key, newValue, "")
 	require.NoError(t, err)
 
 	result, err = repo.Get(ctx, key)

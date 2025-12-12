@@ -67,17 +67,17 @@ func (r *Repository) Ping(ctx context.Context) error {
 
 const qSet = `
 INSERT INTO 
-    shortener.urls (short_url, url) 
+    shortener.urls (short_url, url, user_id) 
 VALUES 
-    ($1, $2) 
+    ($1, $2, $3) 
 ON CONFLICT (url) DO UPDATE 
     SET short_url = shortener.urls.short_url 
 RETURNING short_url
 `
 
-func (r *Repository) Set(ctx context.Context, key string, value string) (string, error) {
+func (r *Repository) Set(ctx context.Context, key, value, userID string) (string, error) {
 	var storedKey string
-	if err := r.db.QueryRow(ctx, qSet, key, value).Scan(&storedKey); err != nil {
+	if err := r.db.QueryRow(ctx, qSet, key, value, userID).Scan(&storedKey); err != nil {
 		return "", err
 	}
 
@@ -116,6 +116,35 @@ func (r *Repository) GetCount(ctx context.Context) (count int, err error) {
 	return count, nil
 }
 
+const qGetUsersUrls = `
+select 
+    short_url, url
+from 
+    shortener.urls 
+where 
+    user_id = $1`
+
+func (r *Repository) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error) {
+	rows, err := r.db.Query(ctx, qGetUsersUrls, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	urls := make([]entities.Item, 0, 8)
+
+	for rows.Next() {
+		url := entities.Item{}
+		err = rows.Scan(&url.ShortURL, &url.ShortURL)
+		if err != nil {
+			return nil, err
+		}
+
+		urls = append(urls, url)
+	}
+
+	return urls, nil
+}
+
 // migrate создает схему и таблицу для хранения URL, если они не существуют.
 // Если tx == nil, операции выполняются напрямую через пул соединений.
 func (r *Repository) migrate(ctx context.Context, tx pgx.Tx) error {
@@ -136,7 +165,8 @@ func (r *Repository) migrate(ctx context.Context, tx pgx.Tx) error {
 	_, err = execFunc(ctx, `
 		CREATE TABLE IF NOT EXISTS shortener.urls (
 			short_url TEXT PRIMARY KEY, 
-			url TEXT NOT NULL unique 
+			url TEXT NOT NULL unique,
+			user_id TEXT
 		)
 	`)
 	if err != nil {

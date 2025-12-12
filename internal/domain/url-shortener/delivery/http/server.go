@@ -6,6 +6,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -28,9 +29,10 @@ type Server struct {
 
 type uc interface {
 	GetByID(context.Context, string) (string, error)
-	CreateShortURL(context.Context, string) (string, bool, error)
+	CreateShortURL(context.Context, string, string) (string, bool, error)
 	Ping(ctx context.Context) error
-	BatchURLs(ctx context.Context, urls []entities.BatchItem) error
+	BatchURLs(ctx context.Context, urls []entities.BatchItem, userID string) error
+	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
 }
 
 // NewServer wires up Gin, logging and use-case dependencies.
@@ -68,6 +70,7 @@ func (s *Server) OnStop(_ context.Context) error {
 }
 
 func (s *Server) CreateShortURL(c *gin.Context) {
+	fmt.Println(c.GetString("userID"))
 	// Получаем raw body
 	body, err := c.GetRawData()
 	if err != nil {
@@ -85,7 +88,7 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url, c.GetString("userID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -138,7 +141,7 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 		return
 	}
 
-	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url)
+	shortURL, conflict, err := s.uc.CreateShortURL(c.Request.Context(), url, c.GetString("userID"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": err.Error(),
@@ -161,7 +164,7 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 func (s *Server) GetByID(c *gin.Context) {
 	id := c.Param("id")
 
-	url, err := s.uc.GetByID(c, id)
+	url, err := s.uc.GetByID(c.Request.Context(), id)
 	if err != nil {
 		s.logger.Error("failed to get url", zap.String("url", id), zap.Error(err))
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -174,7 +177,7 @@ func (s *Server) GetByID(c *gin.Context) {
 }
 
 func (s *Server) Ping(c *gin.Context) {
-	err := s.uc.Ping(c)
+	err := s.uc.Ping(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -201,7 +204,7 @@ func (s *Server) BatchURL(c *gin.Context) { //todo 409
 		return
 	}
 
-	err := s.uc.BatchURLs(c, batchedReq)
+	err := s.uc.BatchURLs(c.Request.Context(), batchedReq, c.GetString("userID"))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),
@@ -214,6 +217,21 @@ func (s *Server) BatchURL(c *gin.Context) { //todo 409
 	}
 
 	c.JSON(http.StatusCreated, batchedReq)
+}
+
+func (s *Server) GetUsersUrls(c *gin.Context) {
+	urls, err := s.uc.GetUsersUrls(c.Request.Context(), c.GetString("userID"))
+	if err != nil {
+		s.logger.Error("failed to get urls", zap.Error(err))
+		return
+	}
+
+	if len(urls) == 0 {
+		c.AbortWithStatus(http.StatusNoContent)
+		return
+	}
+
+	c.JSON(http.StatusOK, urls)
 }
 
 func validateURL(urlStr string) bool {
