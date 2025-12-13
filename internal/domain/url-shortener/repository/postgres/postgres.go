@@ -188,7 +188,7 @@ func (r *Repository) migrate(ctx context.Context, tx pgx.Tx) error {
 			short_url TEXT PRIMARY KEY, 
 			url TEXT NOT NULL unique,
 			user_id TEXT,
-			is_deleted bool
+			is_deleted bool default false
 		)
 	`)
 	if err != nil {
