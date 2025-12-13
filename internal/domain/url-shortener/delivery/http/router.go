@@ -15,4 +15,5 @@ func (s *Server) createController() {
 	apiGroup.POST("/shorten", s.withLogger(s.gzipMiddleware(s.CreateShortURLByBody)))
 	apiGroup.POST("/shorten/batch", s.withLogger(s.gzipMiddleware(s.BatchURL)))
 	apiGroup.GET("/user/urls", s.withLogger(s.gzipMiddleware(s.GetUsersUrls)))
+	apiGroup.DELETE("/user/urls", s.withLogger(s.gzipMiddleware(s.DeleteURLs)))
 }

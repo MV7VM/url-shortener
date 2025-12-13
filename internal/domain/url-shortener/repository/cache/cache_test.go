@@ -38,7 +38,7 @@ func TestRepository_Get_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	// Затем получаем его
-	result, err := repo.Get(ctx, key)
+	result, _, err := repo.Get(ctx, key)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedValue, result)
@@ -49,7 +49,7 @@ func TestRepository_Get_NotFound(t *testing.T) {
 	ctx := context.Background()
 	key := "nonexistent"
 
-	result, err := repo.Get(ctx, key)
+	result, _, err := repo.Get(ctx, key)
 
 	assert.Error(t, err)
 	assert.Equal(t, "not found", err.Error())
@@ -60,7 +60,7 @@ func TestRepository_Get_EmptyKey(t *testing.T) {
 	repo := NewRepository(&config.Model{Repo: config.RepoConfig{CacheConfig: config.CacheConfig{SavingFilePath: "./data.json"}}})
 	ctx := context.Background()
 
-	result, err := repo.Get(ctx, "")
+	result, _, err := repo.Get(ctx, "")
 
 	assert.Error(t, err)
 	assert.Equal(t, "not found", err.Error())
@@ -74,7 +74,7 @@ func TestRepository_Set_EmptyValue(t *testing.T) {
 	_, err := repo.Set(ctx, "key1", "", "")
 	require.NoError(t, err)
 
-	result, err := repo.Get(ctx, "key1")
+	result, _, err := repo.Get(ctx, "key1")
 
 	assert.NoError(t, err)
 	assert.Equal(t, "", result)
@@ -94,7 +94,7 @@ func TestRepository_Set_Overwrite(t *testing.T) {
 	require.NoError(t, err2)
 
 	// Проверяем, что получили новое значение
-	result, err := repo.Get(ctx, key)
+	result, _, err := repo.Get(ctx, key)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "https://example2.com", result)
@@ -110,9 +110,9 @@ func TestRepository_MultipleKeys(t *testing.T) {
 	repo.Set(ctx, "key3", "https://example3.com", "")
 
 	// Получаем все ключи
-	value1, err1 := repo.Get(ctx, "key1")
-	value2, err2 := repo.Get(ctx, "key2")
-	value3, err3 := repo.Get(ctx, "key3")
+	value1, _, err1 := repo.Get(ctx, "key1")
+	value2, _, err2 := repo.Get(ctx, "key2")
+	value3, _, err3 := repo.Get(ctx, "key3")
 
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
@@ -147,7 +147,7 @@ func TestRepository_ConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			key := fmt.Sprintf("key%d", id)
 			// Не проверяем ошибки, так как чтение может произойти до записи
-			_, _ = repo.Get(ctx, key)
+			_, _, _ = repo.Get(ctx, key)
 		}(i)
 	}
 
@@ -157,7 +157,7 @@ func TestRepository_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		key := fmt.Sprintf("key%d", i)
 		expectedValue := fmt.Sprintf("https://example.com/%d", i)
-		value, err := repo.Get(ctx, key)
+		value, _, err := repo.Get(ctx, key)
 		if err == nil {
 			assert.Equal(t, expectedValue, value)
 		}
@@ -186,7 +186,7 @@ func TestRepository_ConcurrentSet(t *testing.T) {
 	wg.Wait()
 
 	// Проверяем, что значение сохранено (может быть любое из записанных)
-	value, err := repo.Get(ctx, key)
+	value, _, err := repo.Get(ctx, key)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, value)
 	assert.Contains(t, value, "value")
@@ -228,7 +228,7 @@ func TestRepository_Get_SpecialCharacters(t *testing.T) {
 			_, err := repo.Set(ctx, tc.key, tc.value, "")
 			require.NoError(t, err)
 
-			result, err := repo.Get(ctx, tc.key)
+			result, _, err := repo.Get(ctx, tc.key)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.value, result)
 		})
@@ -250,7 +250,7 @@ func TestRepository_Get_LongValue(t *testing.T) {
 	_, err := repo.Set(ctx, key, value, "")
 	require.NoError(t, err)
 
-	result, err := repo.Get(ctx, key)
+	result, _, err := repo.Get(ctx, key)
 
 	assert.NoError(t, err)
 	assert.Equal(t, value, result)
@@ -269,7 +269,7 @@ func TestRepository_Set_Get_MultipleOperations(t *testing.T) {
 		_, err := repo.Set(ctx, key, value, "")
 		require.NoError(t, err)
 
-		result, err := repo.Get(ctx, key)
+		result, _, err := repo.Get(ctx, key)
 		require.NoError(t, err)
 		assert.Equal(t, value, result)
 	}
@@ -286,7 +286,7 @@ func TestRepository_Get_AfterSetDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Проверяем, что значение есть
-	result, err := repo.Get(ctx, key)
+	result, _, err := repo.Get(ctx, key)
 	require.NoError(t, err)
 	assert.Equal(t, value, result)
 
@@ -296,7 +296,7 @@ func TestRepository_Get_AfterSetDelete(t *testing.T) {
 	_, err = repo.Set(ctx, key, newValue, "")
 	require.NoError(t, err)
 
-	result, err = repo.Get(ctx, key)
+	result, _, err = repo.Get(ctx, key)
 	require.NoError(t, err)
 	assert.Equal(t, newValue, result)
 }

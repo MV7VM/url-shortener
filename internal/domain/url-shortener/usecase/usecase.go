@@ -8,6 +8,7 @@ import (
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 )
 
 // -----------------------------------------------------------------------------
@@ -26,10 +27,11 @@ type Usecase struct {
 
 type repo interface {
 	Set(ctx context.Context, key, value, userID string) (string, error)
-	Get(ctx context.Context, s string) (string, error)
+	Get(ctx context.Context, s string) (string, bool, error)
 	GetCount(ctx context.Context) (int, error)
 	Ping(ctx context.Context) error
 	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
+	Delete(ctx context.Context, shortURL, userID string) error
 }
 
 func NewUsecase(l *zap.Logger, repo *repository.Repo) (*Usecase, error) {
@@ -49,14 +51,14 @@ func (u *Usecase) OnStart(ctx context.Context) error {
 	return nil
 }
 
-func (u *Usecase) GetByID(ctx context.Context, s string) (string, error) {
-	url, err := u.repo.Get(ctx, s)
+func (u *Usecase) GetByID(ctx context.Context, s string) (string, bool, error) {
+	url, isDeleted, err := u.repo.Get(ctx, s)
 	if err != nil {
 		u.log.Error("failed to get url", zap.String("url", s), zap.Error(err))
-		return "", err
+		return "", false, err
 	}
 
-	return url, nil
+	return url, isDeleted, nil
 }
 
 func (u *Usecase) CreateShortURL(ctx context.Context, url, userID string) (string, bool, error) {
@@ -110,6 +112,23 @@ func (u *Usecase) GetUsersUrls(ctx context.Context, userID string) ([]entities.I
 	}
 
 	return urls, nil
+}
+
+func (u *Usecase) Delete(ctx context.Context, shortURL []string, userID string) error {
+	eg, ctxEg := errgroup.WithContext(ctx)
+	for i := range shortURL {
+		eg.Go(func() error {
+			return u.repo.Delete(ctxEg, shortURL[i], userID)
+		})
+	}
+
+	err := eg.Wait()
+	if err != nil {
+		u.log.Error("failed to delete urls", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 func (u *Usecase) shortenURL() string {

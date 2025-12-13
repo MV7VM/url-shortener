@@ -18,11 +18,15 @@ import (
 )
 
 type mockUsecase struct {
-	GetByIDFunc        func(context.Context, string) (string, error)
+	GetByIDFunc        func(context.Context, string) (string, bool, error)
 	CreateShortURLFunc func(context.Context, string, string) (string, bool, error)
 	PingFunc           func(context.Context) error
 	GetUsersUrlsFunc   func(ctx context.Context, userID string) ([]entities.Item, error)
 	BatchURLsFunc      func(ctx context.Context, urls []entities.BatchItem, userID string) error
+}
+
+func (m *mockUsecase) Delete(ctx context.Context, shortURL []string, userID string) error {
+	return nil
 }
 
 func (m *mockUsecase) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error) {
@@ -40,11 +44,11 @@ func (m *mockUsecase) BatchURLs(ctx context.Context, urls []entities.BatchItem, 
 	return nil
 }
 
-func (m *mockUsecase) GetByID(ctx context.Context, id string) (string, error) {
+func (m *mockUsecase) GetByID(ctx context.Context, id string) (string, bool, error) {
 	if m.GetByIDFunc != nil {
 		return m.GetByIDFunc(ctx, id)
 	}
-	return "", errors.New("not implemented")
+	return "", false, errors.New("not implemented")
 }
 
 func (m *mockUsecase) CreateShortURL(ctx context.Context, url string, userID string) (string, bool, error) {
@@ -185,9 +189,9 @@ func TestServer_CreateShortURL_WithWhitespace(t *testing.T) {
 func TestServer_GetByID_Success(t *testing.T) {
 	logger := zap.NewNop()
 	mockUC := &mockUsecase{
-		GetByIDFunc: func(ctx context.Context, id string) (string, error) {
+		GetByIDFunc: func(ctx context.Context, id string) (string, bool, error) {
 			assert.Equal(t, "abc123", id)
-			return "https://example.com", nil
+			return "https://example.com", false, nil
 		},
 	}
 
@@ -211,8 +215,8 @@ func TestServer_GetByID_Success(t *testing.T) {
 func TestServer_GetByID_NotFound(t *testing.T) {
 	logger := zap.NewNop()
 	mockUC := &mockUsecase{
-		GetByIDFunc: func(ctx context.Context, id string) (string, error) {
-			return "", errors.New("not found")
+		GetByIDFunc: func(ctx context.Context, id string) (string, bool, error) {
+			return "", false, errors.New("not found")
 		},
 	}
 

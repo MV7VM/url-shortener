@@ -42,13 +42,13 @@ func (r *Repository) Set(_ context.Context, key, value, userID string) (string, 
 	return key, nil
 }
 
-func (r *Repository) Get(_ context.Context, s string) (string, error) {
+func (r *Repository) Get(_ context.Context, s string) (string, bool, error) {
 	url, ok := r.db.Load(s)
 	if _, okString := url.(Value); !okString || !ok || url == nil {
-		return "", errors.New("not found")
+		return "", false, errors.New("not found")
 	}
 
-	return url.(Value).Value, nil
+	return url.(Value).Value, false, nil
 }
 
 func (r *Repository) GetCount(_ context.Context) (int, error) {

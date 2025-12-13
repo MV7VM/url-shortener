@@ -86,19 +86,19 @@ func (r *Repository) Set(ctx context.Context, key, value, userID string) (string
 
 const qGet = `
 select 
-    url 
+    url, is_deleted 
 from 
     shortener.urls 
 where 
     short_url = $1`
 
-func (r *Repository) Get(ctx context.Context, s string) (url string, err error) {
-	err = r.db.QueryRow(ctx, qGet, s).Scan(&url)
+func (r *Repository) Get(ctx context.Context, s string) (url string, isDelete bool, err error) {
+	err = r.db.QueryRow(ctx, qGet, s).Scan(&url, &isDelete)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 
-	return url, nil
+	return url, isDelete, nil
 }
 
 const qGetCount = `
@@ -145,6 +145,27 @@ func (r *Repository) GetUsersUrls(ctx context.Context, userID string) ([]entitie
 	return urls, nil
 }
 
+const qDelete = `
+update 
+    shortener.urls 
+set 
+    is_deleted = case 
+        when user_id =$2
+            then true 
+            else is_deleted 
+        end
+where short_url = $1;
+`
+
+func (r *Repository) Delete(ctx context.Context, shortURL, userID string) error {
+	_, err := r.db.Exec(ctx, qDelete, shortURL, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // migrate создает схему и таблицу для хранения URL, если они не существуют.
 // Если tx == nil, операции выполняются напрямую через пул соединений.
 func (r *Repository) migrate(ctx context.Context, tx pgx.Tx) error {
@@ -166,7 +187,8 @@ func (r *Repository) migrate(ctx context.Context, tx pgx.Tx) error {
 		CREATE TABLE IF NOT EXISTS shortener.urls (
 			short_url TEXT PRIMARY KEY, 
 			url TEXT NOT NULL unique,
-			user_id TEXT
+			user_id TEXT,
+			is_deleted bool
 		)
 	`)
 	if err != nil {

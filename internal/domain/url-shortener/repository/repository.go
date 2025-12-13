@@ -11,7 +11,7 @@ import (
 
 type repository interface {
 	Set(ctx context.Context, key string, value, userID string) (string, error)
-	Get(ctx context.Context, s string) (string, error)
+	Get(ctx context.Context, s string) (string, bool, error)
 	GetCount(ctx context.Context) (int, error)
 	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
 	OnStart(_ context.Context) error
@@ -75,7 +75,7 @@ func (r *Repo) Set(ctx context.Context, key string, value, userID string) (strin
 	return r.repository.Set(ctx, key, value, userID)
 }
 
-func (r *Repo) Get(ctx context.Context, s string) (string, error) {
+func (r *Repo) Get(ctx context.Context, s string) (string, bool, error) {
 	return r.repository.Get(ctx, s)
 }
 
@@ -89,4 +89,8 @@ func (r *Repo) Ping(ctx context.Context) error {
 
 func (r *Repo) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error) {
 	return r.repository.GetUsersUrls(ctx, userID)
+}
+
+func (r *Repo) Delete(ctx context.Context, shortURL, userID string) error {
+	return r.psql.Delete(ctx, shortURL, userID)
 }

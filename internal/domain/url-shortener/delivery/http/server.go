@@ -28,11 +28,12 @@ type Server struct {
 }
 
 type uc interface {
-	GetByID(context.Context, string) (string, error)
+	GetByID(context.Context, string) (string, bool, error)
 	CreateShortURL(context.Context, string, string) (string, bool, error)
 	Ping(ctx context.Context) error
 	BatchURLs(ctx context.Context, urls []entities.BatchItem, userID string) error
 	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
+	Delete(ctx context.Context, shortURL []string, userID string) error
 }
 
 // NewServer wires up Gin, logging and use-case dependencies.
@@ -164,15 +165,19 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 func (s *Server) GetByID(c *gin.Context) {
 	id := c.Param("id")
 
-	url, err := s.uc.GetByID(c.Request.Context(), id)
+	url, isDeleted, err := s.uc.GetByID(c.Request.Context(), id)
 	if err != nil {
 		s.logger.Error("failed to get url", zap.String("url", id), zap.Error(err))
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	c.Header("Location", url)
+	if isDeleted {
+		c.AbortWithStatus(http.StatusGone)
+		return
+	}
 
+	c.Header("Location", url)
 	c.Status(http.StatusTemporaryRedirect)
 }
 
@@ -236,6 +241,23 @@ func (s *Server) GetUsersUrls(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, urls)
+}
+
+func (s *Server) DeleteURLs(c *gin.Context) {
+	var items []string
+
+	// Привязываем JSON из тела запроса
+	if err := c.ShouldBindJSON(&items); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid JSON format",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	go s.uc.Delete(context.TODO(), items, c.GetString("userID"))
+
+	c.AbortWithStatus(http.StatusAccepted)
 }
 
 func validateURL(urlStr string) bool {
