@@ -19,7 +19,7 @@ type mockRepo struct {
 	PingFunc     func(context.Context) error
 }
 
-func (m *mockRepo) Delete(ctx context.Context, shortURL, userID string) error {
+func (m *mockRepo) Delete(ctx context.Context, shortURL []string, userID string) error {
 	return nil
 }
 

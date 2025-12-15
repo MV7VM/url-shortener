@@ -91,6 +91,6 @@ func (r *Repo) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item
 	return r.repository.GetUsersUrls(ctx, userID)
 }
 
-func (r *Repo) Delete(ctx context.Context, shortURL, userID string) error {
+func (r *Repo) Delete(ctx context.Context, shortURL []string, userID string) error {
 	return r.psql.Delete(ctx, shortURL, userID)
 }

@@ -154,10 +154,10 @@ set
             then true 
             else is_deleted 
         end
-where short_url = $1;
+where short_url = any($1);
 `
 
-func (r *Repository) Delete(ctx context.Context, shortURL, userID string) error {
+func (r *Repository) Delete(ctx context.Context, shortURL []string, userID string) error {
 	_, err := r.db.Exec(ctx, qDelete, shortURL, userID)
 	if err != nil {
 		return err

@@ -65,7 +65,10 @@ func (s *Server) auth(c *gin.Context) {
 }
 
 func (s *Server) createAuthToken() (string, string, error) {
-	userID, _ := uuid.NewV7()
+	userID, err := uuid.NewV7()
+	if err != nil {
+		return "", "", err
+	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"userID": userID.String(),

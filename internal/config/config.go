@@ -26,7 +26,11 @@ func NewConfig() (*Model, error) {
 		cfg.Repo.SavingFilePath = dbConn
 	}
 
-	secretKey, _ := uuid.NewV7()
+	secretKey, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
 	cfg.HTTP.SecretToken = secretKey.String()
 
 	return &cfg, nil

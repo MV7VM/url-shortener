@@ -8,7 +8,6 @@ import (
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 )
 
 // -----------------------------------------------------------------------------
@@ -31,7 +30,7 @@ type repo interface {
 	GetCount(ctx context.Context) (int, error)
 	Ping(ctx context.Context) error
 	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
-	Delete(ctx context.Context, shortURL, userID string) error
+	Delete(ctx context.Context, shortURL []string, userID string) error
 }
 
 func NewUsecase(l *zap.Logger, repo *repository.Repo) (*Usecase, error) {
@@ -115,14 +114,7 @@ func (u *Usecase) GetUsersUrls(ctx context.Context, userID string) ([]entities.I
 }
 
 func (u *Usecase) Delete(ctx context.Context, shortURL []string, userID string) error {
-	eg, ctxEg := errgroup.WithContext(ctx)
-	for i := range shortURL {
-		eg.Go(func() error {
-			return u.repo.Delete(ctxEg, shortURL[i], userID)
-		})
-	}
-
-	err := eg.Wait()
+	err := u.repo.Delete(ctx, shortURL, userID)
 	if err != nil {
 		u.log.Error("failed to delete urls", zap.Error(err))
 		return err
