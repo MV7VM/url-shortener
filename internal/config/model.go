@@ -8,6 +8,7 @@ type Model struct {
 type HTTPConfig struct {
 	Host         string
 	ReturningURL string
+	SecretToken  string
 }
 
 type RepoConfig struct {

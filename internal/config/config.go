@@ -3,6 +3,8 @@ package config
 import (
 	"flag"
 	"os"
+
+	"github.com/gofrs/uuid"
 )
 
 func NewConfig() (*Model, error) {
@@ -23,6 +25,13 @@ func NewConfig() (*Model, error) {
 	if dbConn := os.Getenv("DATABASE_DSN"); dbConn != "" {
 		cfg.Repo.SavingFilePath = dbConn
 	}
+
+	secretKey, err := uuid.NewV7()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.HTTP.SecretToken = secretKey.String()
 
 	return &cfg, nil
 }

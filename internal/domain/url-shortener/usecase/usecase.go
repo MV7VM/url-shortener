@@ -25,10 +25,12 @@ type Usecase struct {
 }
 
 type repo interface {
-	Set(ctx context.Context, key, value string) (string, error)
-	Get(ctx context.Context, s string) (string, error)
+	Set(ctx context.Context, key, value, userID string) (string, error)
+	Get(ctx context.Context, s string) (string, bool, error)
 	GetCount(ctx context.Context) (int, error)
 	Ping(ctx context.Context) error
+	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
+	Delete(ctx context.Context, shortURL []string, userID string) error
 }
 
 func NewUsecase(l *zap.Logger, repo *repository.Repo) (*Usecase, error) {
@@ -48,20 +50,20 @@ func (u *Usecase) OnStart(ctx context.Context) error {
 	return nil
 }
 
-func (u *Usecase) GetByID(ctx context.Context, s string) (string, error) {
-	url, err := u.repo.Get(ctx, s)
+func (u *Usecase) GetByID(ctx context.Context, s string) (string, bool, error) {
+	url, isDeleted, err := u.repo.Get(ctx, s)
 	if err != nil {
 		u.log.Error("failed to get url", zap.String("url", s), zap.Error(err))
-		return "", err
+		return "", false, err
 	}
 
-	return url, nil
+	return url, isDeleted, nil
 }
 
-func (u *Usecase) CreateShortURL(ctx context.Context, url string) (string, bool, error) {
+func (u *Usecase) CreateShortURL(ctx context.Context, url, userID string) (string, bool, error) {
 	encodedURL := u.shortenURL()
 
-	shortURL, err := u.repo.Set(ctx, encodedURL, url)
+	shortURL, err := u.repo.Set(ctx, encodedURL, url, userID)
 	if err != nil {
 		u.log.Error("failed to set url", zap.String("url", url), zap.Error(err))
 		return "", false, err
@@ -84,11 +86,11 @@ func (u *Usecase) Ping(ctx context.Context) error {
 	return nil
 }
 
-func (u *Usecase) BatchURLs(ctx context.Context, urls []entities.BatchItem) error {
+func (u *Usecase) BatchURLs(ctx context.Context, urls []entities.BatchItem, userID string) error {
 	for i := range urls {
 		urls[i].ShortURL = u.shortenURL()
 
-		shortURL, err := u.repo.Set(ctx, urls[i].ShortURL, urls[i].OriginalURL)
+		shortURL, err := u.repo.Set(ctx, urls[i].ShortURL, urls[i].OriginalURL, userID)
 		if err != nil {
 			u.log.Error("failed to set url", zap.String("url", urls[i].OriginalURL), zap.Error(err))
 			return err
@@ -96,6 +98,26 @@ func (u *Usecase) BatchURLs(ctx context.Context, urls []entities.BatchItem) erro
 
 		urls[i].OriginalURL = ""
 		urls[i].ShortURL = shortURL
+	}
+
+	return nil
+}
+
+func (u *Usecase) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error) {
+	urls, err := u.repo.GetUsersUrls(ctx, userID)
+	if err != nil {
+		u.log.Error("failed to get users urls", zap.Error(err))
+		return nil, err
+	}
+
+	return urls, nil
+}
+
+func (u *Usecase) Delete(ctx context.Context, shortURL []string, userID string) error {
+	err := u.repo.Delete(ctx, shortURL, userID)
+	if err != nil {
+		u.log.Error("failed to delete urls", zap.Error(err))
+		return err
 	}
 
 	return nil
