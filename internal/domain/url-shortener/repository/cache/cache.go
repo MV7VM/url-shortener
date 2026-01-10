@@ -24,6 +24,11 @@ func NewRepository(cfg *config.Model) *Repository {
 	}
 }
 
+type Value struct {
+	Value  string
+	UserID string
+}
+
 func (r *Repository) OnStart(_ context.Context) error {
 	return r.recovery()
 }
@@ -32,18 +37,18 @@ func (r *Repository) OnStop(_ context.Context) error {
 	return r.save()
 }
 
-func (r *Repository) Set(_ context.Context, key, value string) (string, error) {
-	r.db.Store(key, value)
+func (r *Repository) Set(_ context.Context, key, value, userID string) (string, error) {
+	r.db.Store(key, Value{Value: value, UserID: userID})
 	return key, nil
 }
 
-func (r *Repository) Get(_ context.Context, s string) (string, error) {
+func (r *Repository) Get(_ context.Context, s string) (string, bool, error) {
 	url, ok := r.db.Load(s)
-	if _, okString := url.(string); !okString || !ok || url == nil {
-		return "", errors.New("not found")
+	if _, okString := url.(Value); !okString || !ok || url == nil {
+		return "", false, errors.New("not found")
 	}
 
-	return url.(string), nil
+	return url.(Value).Value, false, nil
 }
 
 func (r *Repository) GetCount(_ context.Context) (int, error) {
@@ -55,6 +60,28 @@ func (r *Repository) GetCount(_ context.Context) (int, error) {
 	})
 
 	return count, nil
+}
+
+func (r *Repository) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error) {
+	urls := make([]entities.Item, 0, 8)
+	r.db.Range(func(k, v interface{}) bool {
+		if _, okValue := v.(Value); !okValue {
+			return true
+		}
+
+		if v.(Value).UserID != userID {
+			return true
+		}
+
+		urls = append(urls, entities.Item{
+			ShortURL:    k.(string),
+			OriginalURL: v.(Value).Value,
+		})
+
+		return true
+	})
+
+	return urls, nil
 }
 
 func (r *Repository) recovery() error {
@@ -84,7 +111,7 @@ func (r *Repository) recovery() error {
 		if item.ShortURL == "" || item.OriginalURL == "" {
 			continue
 		}
-		r.db.Store(item.ShortURL, item.OriginalURL)
+		r.db.Store(item.ShortURL, Value{Value: item.OriginalURL, UserID: ""})
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -12,10 +13,18 @@ import (
 
 // mockRepo мок для интерфейса repo
 type mockRepo struct {
-	GetFunc      func(context.Context, string) (string, error)
-	SetFunc      func(context.Context, string, string) (string, error)
+	GetFunc      func(context.Context, string) (string, bool, error)
+	SetFunc      func(context.Context, string, string, string) (string, error)
 	GetCountFunc func(context.Context) (int, error)
 	PingFunc     func(context.Context) error
+}
+
+func (m *mockRepo) Delete(ctx context.Context, shortURL []string, userID string) error {
+	return nil
+}
+
+func (m *mockRepo) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error) {
+	return nil, nil
 }
 
 func (m *mockRepo) GetCount(ctx context.Context) (int, error) {
@@ -25,16 +34,16 @@ func (m *mockRepo) GetCount(ctx context.Context) (int, error) {
 	return 0, errors.New("not implemented")
 }
 
-func (m *mockRepo) Get(ctx context.Context, key string) (string, error) {
+func (m *mockRepo) Get(ctx context.Context, key string) (string, bool, error) {
 	if m.GetFunc != nil {
 		return m.GetFunc(ctx, key)
 	}
-	return "", errors.New("not implemented")
+	return "", false, errors.New("not implemented")
 }
 
-func (m *mockRepo) Set(ctx context.Context, key, value string) (string, error) {
+func (m *mockRepo) Set(ctx context.Context, key, value, userID string) (string, error) {
 	if m.SetFunc != nil {
-		return m.SetFunc(ctx, key, value)
+		return m.SetFunc(ctx, key, value, userID)
 	}
 	return "", errors.New("not implemented")
 }
@@ -109,9 +118,9 @@ func TestUsecase_GetByID_Success(t *testing.T) {
 	expectedKey := "abc123"
 
 	mockRepo := &mockRepo{
-		GetFunc: func(ctx context.Context, key string) (string, error) {
+		GetFunc: func(ctx context.Context, key string) (string, bool, error) {
 			assert.Equal(t, expectedKey, key)
-			return expectedURL, nil
+			return expectedURL, false, nil
 		},
 	}
 
@@ -121,7 +130,7 @@ func TestUsecase_GetByID_Success(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := uc.GetByID(ctx, expectedKey)
+	result, _, err := uc.GetByID(ctx, expectedKey)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedURL, result)
@@ -133,9 +142,9 @@ func TestUsecase_GetByID_RepositoryError(t *testing.T) {
 	expectedError := errors.New("not found")
 
 	mockRepo := &mockRepo{
-		GetFunc: func(ctx context.Context, key string) (string, error) {
+		GetFunc: func(ctx context.Context, key string) (string, bool, error) {
 			assert.Equal(t, expectedKey, key)
-			return "", expectedError
+			return "", false, expectedError
 		},
 	}
 
@@ -145,7 +154,7 @@ func TestUsecase_GetByID_RepositoryError(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := uc.GetByID(ctx, expectedKey)
+	result, _, err := uc.GetByID(ctx, expectedKey)
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
@@ -160,7 +169,7 @@ func TestUsecase_CreateShortURL_Success(t *testing.T) {
 	var capturedValue string
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+		SetFunc: func(ctx context.Context, key, value, userID string) (string, error) {
 			capturedKey = key
 			capturedValue = value
 			return key, nil
@@ -173,7 +182,7 @@ func TestUsecase_CreateShortURL_Success(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	shortURL, _, err := uc.CreateShortURL(ctx, inputURL)
+	shortURL, _, err := uc.CreateShortURL(ctx, inputURL, "")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, shortURL)
@@ -189,7 +198,7 @@ func TestUsecase_CreateShortURL_RepositoryError(t *testing.T) {
 	expectedError := errors.New("database error")
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+		SetFunc: func(ctx context.Context, key, value, userID string) (string, error) {
 			return "", expectedError
 		},
 	}
@@ -200,7 +209,7 @@ func TestUsecase_CreateShortURL_RepositoryError(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	shortURL, _, err := uc.CreateShortURL(ctx, inputURL)
+	shortURL, _, err := uc.CreateShortURL(ctx, inputURL, "")
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
@@ -212,7 +221,7 @@ func TestUsecase_CreateShortURL_MultipleSequential(t *testing.T) {
 	keys := make([]string, 0)
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+		SetFunc: func(ctx context.Context, key, value, userID string) (string, error) {
 			keys = append(keys, key)
 			return key, nil
 		},
@@ -226,9 +235,9 @@ func TestUsecase_CreateShortURL_MultipleSequential(t *testing.T) {
 	ctx := context.Background()
 
 	// Создаем несколько URL подряд
-	shortURL1, _, err1 := uc.CreateShortURL(ctx, "https://example1.com")
-	shortURL2, _, err2 := uc.CreateShortURL(ctx, "https://example2.com")
-	shortURL3, _, err3 := uc.CreateShortURL(ctx, "https://example3.com")
+	shortURL1, _, err1 := uc.CreateShortURL(ctx, "https://example1.com", "")
+	shortURL2, _, err2 := uc.CreateShortURL(ctx, "https://example2.com", "")
+	shortURL3, _, err3 := uc.CreateShortURL(ctx, "https://example3.com", "")
 
 	require.NoError(t, err1)
 	require.NoError(t, err2)
@@ -250,7 +259,7 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 	logger := zap.NewNop()
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+		SetFunc: func(ctx context.Context, key, value, userID string) (string, error) {
 			return key, nil
 		},
 	}
@@ -267,16 +276,16 @@ func TestUsecase_CreateShortURL_Base62Encoding(t *testing.T) {
 	// count = 1 -> base62Encode(2) = 'c'
 	// и так далее
 
-	shortURL1, _, _ := uc.CreateShortURL(ctx, "https://example1.com")
+	shortURL1, _, _ := uc.CreateShortURL(ctx, "https://example1.com", "")
 	assert.Equal(t, "b", shortURL1)
 
-	shortURL2, _, _ := uc.CreateShortURL(ctx, "https://example2.com")
+	shortURL2, _, _ := uc.CreateShortURL(ctx, "https://example2.com", "")
 	assert.Equal(t, "c", shortURL2)
 
 	// После 63 запросов должен появиться двусимвольный код
 	// Устанавливаем count так, чтобы следующий был 63 (после инкремента)
 	uc.count.Store(62)
-	shortURL63, _, _ := uc.CreateShortURL(ctx, "https://example63.com")
+	shortURL63, _, _ := uc.CreateShortURL(ctx, "https://example63.com", "")
 	// 63 в base63 = "ba" (1*63 + 0): alphabet[0]='a', затем 63/63=1, alphabet[1]='b' -> "ba"
 	assert.Equal(t, "cb", shortURL63)
 }
@@ -312,11 +321,11 @@ func TestUsecase_GetByID_EmptyKey(t *testing.T) {
 	expectedError := errors.New("empty key")
 
 	mockRepo := &mockRepo{
-		GetFunc: func(ctx context.Context, key string) (string, error) {
+		GetFunc: func(ctx context.Context, key string) (string, bool, error) {
 			if key == "" {
-				return "", expectedError
+				return "", false, expectedError
 			}
-			return "", errors.New("not found")
+			return "", false, errors.New("not found")
 		},
 	}
 
@@ -326,7 +335,7 @@ func TestUsecase_GetByID_EmptyKey(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	result, err := uc.GetByID(ctx, "")
+	result, _, err := uc.GetByID(ctx, "")
 
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
@@ -337,7 +346,7 @@ func TestUsecase_CreateShortURL_EmptyURL(t *testing.T) {
 	logger := zap.NewNop()
 
 	mockRepo := &mockRepo{
-		SetFunc: func(ctx context.Context, key, value string) (string, error) {
+		SetFunc: func(ctx context.Context, key, value, userID string) (string, error) {
 			return "b", nil
 		},
 	}
@@ -348,7 +357,7 @@ func TestUsecase_CreateShortURL_EmptyURL(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	shortURL, _, err := uc.CreateShortURL(ctx, "")
+	shortURL, _, err := uc.CreateShortURL(ctx, "", "")
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, shortURL)

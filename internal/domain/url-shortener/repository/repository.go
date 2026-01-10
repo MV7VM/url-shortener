@@ -4,14 +4,16 @@ import (
 	"context"
 
 	"github.com/MV7VM/url-shortener/internal/config"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository/cache"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository/postgres"
 )
 
 type repository interface {
-	Set(ctx context.Context, key string, value string) (string, error)
-	Get(ctx context.Context, s string) (string, error)
+	Set(ctx context.Context, key string, value, userID string) (string, error)
+	Get(ctx context.Context, s string) (string, bool, error)
 	GetCount(ctx context.Context) (int, error)
+	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
 	OnStart(_ context.Context) error
 	OnStop(_ context.Context) error
 }
@@ -69,11 +71,11 @@ func (r *Repo) OnStop(ctx context.Context) error {
 	return nil
 }
 
-func (r *Repo) Set(ctx context.Context, key string, value string) (string, error) {
-	return r.repository.Set(ctx, key, value)
+func (r *Repo) Set(ctx context.Context, key string, value, userID string) (string, error) {
+	return r.repository.Set(ctx, key, value, userID)
 }
 
-func (r *Repo) Get(ctx context.Context, s string) (string, error) {
+func (r *Repo) Get(ctx context.Context, s string) (string, bool, error) {
 	return r.repository.Get(ctx, s)
 }
 
@@ -83,4 +85,12 @@ func (r *Repo) GetCount(ctx context.Context) (int, error) {
 
 func (r *Repo) Ping(ctx context.Context) error {
 	return r.psql.Ping(ctx)
+}
+
+func (r *Repo) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error) {
+	return r.repository.GetUsersUrls(ctx, userID)
+}
+
+func (r *Repo) Delete(ctx context.Context, shortURL []string, userID string) error {
+	return r.psql.Delete(ctx, shortURL, userID)
 }

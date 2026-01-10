@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gofrs/uuid"
+	"github.com/golang-jwt/jwt/v4"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +25,86 @@ func (s *Server) withLogger(handler gin.HandlerFunc) gin.HandlerFunc {
 			zap.Any("duration", time.Since(startTime)),
 		)
 	}
+}
+
+func (s *Server) auth(c *gin.Context) {
+	userID := ""
+	_, err := c.Cookie("auth")
+	if err != nil {
+		token := ""
+		token, userID, err = s.createAuthToken()
+		if err != nil {
+			c.AbortWithStatus(http.StatusInternalServerError)
+			return
+		}
+
+		http.SetCookie(c.Writer, &http.Cookie{
+			Name:  "auth",
+			Value: token,
+			Path:  "/",
+			//HttpOnly: true,
+			//Secure:   true,
+			//SameSite: http.SameSiteNoneMode,
+			MaxAge: 0,
+		})
+	}
+
+	if userID != "" {
+		c.Set("userID", userID)
+		c.Next()
+		return
+	}
+
+	err = s.parseToken(c)
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	c.Next()
+}
+
+func (s *Server) createAuthToken() (string, string, error) {
+	userID, err := uuid.NewV7()
+	if err != nil {
+		return "", "", err
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userID": userID.String(),
+	})
+
+	signedString, err := token.SignedString([]byte(s.cfg.HTTP.SecretToken))
+	if err != nil {
+		return "", "", err
+	}
+
+	return signedString, userID.String(), nil
+}
+
+func (s *Server) parseToken(c *gin.Context) error {
+	cookie, err := c.Cookie("auth")
+	if err != nil {
+		return err
+	}
+
+	token, err := jwt.Parse(cookie, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return []byte(s.cfg.HTTP.SecretToken), nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		for key, value := range claims {
+			c.Set(key, value)
+		}
+	}
+
+	return nil
 }
 
 type gzipWriter struct {
