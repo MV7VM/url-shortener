@@ -6,13 +6,14 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/MV7VM/url-shortener/internal/config"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/metrics/watcher"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
 
@@ -21,10 +22,11 @@ import (
 )
 
 type Server struct {
-	logger *zap.Logger
-	serv   *gin.Engine
-	cfg    *config.Model
-	uc     uc
+	logger  *zap.Logger
+	serv    *gin.Engine
+	cfg     *config.Model
+	uc      uc
+	auditor Auditor
 }
 
 type uc interface {
@@ -36,17 +38,22 @@ type uc interface {
 	Delete(ctx context.Context, shortURL []string, userID string) error
 }
 
+type Auditor interface {
+	Notify(event *entities.Event)
+}
+
 // NewServer wires up Gin, logging and use-case dependencies.
-func NewServer(logger *zap.Logger, cfg *config.Model, uc *usecase.Usecase) (*Server, error) {
+func NewServer(logger *zap.Logger, cfg *config.Model, uc *usecase.Usecase, auditor *watcher.Watcher) (*Server, error) {
 	if cfg.HTTP.ReturningURL[len(cfg.HTTP.ReturningURL)-1] != '/' {
 		cfg.HTTP.ReturningURL += "/"
 	}
 	// Gin already installs its own recovery & logging middleware; leave as-is.
 	return &Server{
-		logger: logger,
-		serv:   gin.Default(),
-		uc:     uc,
-		cfg:    cfg,
+		logger:  logger,
+		serv:    gin.Default(),
+		uc:      uc,
+		cfg:     cfg,
+		auditor: auditor,
 	}, nil
 }
 
@@ -71,7 +78,6 @@ func (s *Server) OnStop(_ context.Context) error {
 }
 
 func (s *Server) CreateShortURL(c *gin.Context) {
-	fmt.Println(c.GetString("userID"))
 	// Получаем raw body
 	body, err := c.GetRawData()
 	if err != nil {
@@ -96,6 +102,13 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 		})
 		return
 	}
+
+	s.auditor.Notify(&entities.Event{
+		Ts:     int(time.Now().Unix()),
+		Action: entities.ActionShort,
+		UserId: c.GetString("userID"),
+		Url:    url,
+	})
 
 	if conflict {
 		c.String(http.StatusConflict, s.cfg.HTTP.ReturningURL+shortURL)
@@ -150,6 +163,13 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 		return
 	}
 
+	s.auditor.Notify(&entities.Event{
+		Ts:     int(time.Now().Unix()),
+		Action: entities.ActionShort,
+		UserId: c.GetString("userID"),
+		Url:    url,
+	})
+
 	if conflict {
 		c.JSON(http.StatusConflict, CreateShortURLByBodyResp{
 			ShortURL: s.cfg.HTTP.ReturningURL + shortURL,
@@ -171,6 +191,13 @@ func (s *Server) GetByID(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
+
+	s.auditor.Notify(&entities.Event{
+		Ts:     int(time.Now().Unix()),
+		Action: entities.ActionFollow,
+		UserId: c.GetString("userID"),
+		Url:    url,
+	})
 
 	if isDeleted {
 		c.AbortWithStatus(http.StatusGone)
