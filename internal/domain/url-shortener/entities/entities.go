@@ -20,8 +20,8 @@ type BatchItem struct {
 }
 
 type Event struct {
-	Ts     int    `json:"ts"`
+	TS     int    `json:"ts"`
 	Action string `json:"action"`
-	UserId string `json:"user_id"`
-	Url    string `json:"url"`
+	UserID string `json:"user_id"`
+	URL    string `json:"url"`
 }

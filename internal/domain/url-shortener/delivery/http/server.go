@@ -104,10 +104,10 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 	}
 
 	s.auditor.Notify(&entities.Event{
-		Ts:     int(time.Now().Unix()),
+		TS:     int(time.Now().Unix()),
 		Action: entities.ActionShort,
-		UserId: c.GetString("userID"),
-		Url:    url,
+		UserID: c.GetString("userID"),
+		URL:    url,
 	})
 
 	if conflict {
@@ -164,10 +164,10 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 	}
 
 	s.auditor.Notify(&entities.Event{
-		Ts:     int(time.Now().Unix()),
+		TS:     int(time.Now().Unix()),
 		Action: entities.ActionShort,
-		UserId: c.GetString("userID"),
-		Url:    url,
+		UserID: c.GetString("userID"),
+		URL:    url,
 	})
 
 	if conflict {
@@ -193,10 +193,10 @@ func (s *Server) GetByID(c *gin.Context) {
 	}
 
 	s.auditor.Notify(&entities.Event{
-		Ts:     int(time.Now().Unix()),
+		TS:     int(time.Now().Unix()),
 		Action: entities.ActionFollow,
-		UserId: c.GetString("userID"),
-		Url:    url,
+		UserID: c.GetString("userID"),
+		URL:    url,
 	})
 
 	if isDeleted {
