@@ -12,11 +12,13 @@ import (
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 )
 
+// Repository implements an in-memory URL storage with optional file persistence.
 type Repository struct {
 	db  *sync.Map
 	cfg *config.Model
 }
 
+// NewRepository constructs a new in-memory cache repository using provided config.
 func NewRepository(cfg *config.Model) *Repository {
 	return &Repository{
 		db:  new(sync.Map),
@@ -24,6 +26,7 @@ func NewRepository(cfg *config.Model) *Repository {
 	}
 }
 
+// Value is the internal representation stored in the cache for each short URL.
 type Value struct {
 	Value  string
 	UserID string

@@ -5,6 +5,7 @@ import (
 
 	"github.com/MV7VM/url-shortener/internal/config"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/http"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/metrics"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
 
@@ -13,12 +14,15 @@ import (
 	"go.uber.org/zap"
 )
 
+// New constructs the Fx application wiring together config, logging,
+// repositories, use-cases, HTTP server and metrics pipeline.
 func New() *fx.App {
 	return fx.New(
 		fx.Options(
 			repository.New(), //
 			usecase.New(),
 			http.New(),
+			metrics.New(),
 		),
 		fx.Provide(
 			config.NewConfig,

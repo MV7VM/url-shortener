@@ -362,3 +362,10 @@ func TestUsecase_CreateShortURL_EmptyURL(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, shortURL)
 }
+
+func BenchmarkShortener_CreateShortURL(b *testing.B) {
+	uc := Usecase{}
+	for n := 0; n < b.N; n++ {
+		uc.shortenURL()
+	}
+}
