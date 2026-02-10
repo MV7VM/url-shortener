@@ -32,9 +32,10 @@ func (p *URLPublisher) Update(s *entities.Event) {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	_, err = http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		p.logger.Error("failed to send request", zap.Error(err))
 		return
 	}
+	defer resp.Body.Close()
 }
