@@ -18,6 +18,8 @@ const (
 	alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678"
 )
 
+// Usecase implements the core business logic for shortening and resolving URLs.
+// It hides details of the underlying repositories behind a narrow interface.
 type Usecase struct {
 	log   *zap.Logger
 	count atomic.Uint64
@@ -33,10 +35,13 @@ type repo interface {
 	Delete(ctx context.Context, shortURL []string, userID string) error
 }
 
+// NewUsecase constructs a new Usecase instance backed by the given repository.
 func NewUsecase(l *zap.Logger, repo *repository.Repo) (*Usecase, error) {
 	return &Usecase{log: l.Named("usecase"), repo: repo}, nil
 }
 
+// OnStart initialises internal counters from the repository and is intended
+// to be used as an Fx lifecycle hook.
 func (u *Usecase) OnStart(ctx context.Context) error {
 	count, err := u.repo.GetCount(ctx)
 	if err != nil {
@@ -50,6 +55,8 @@ func (u *Usecase) OnStart(ctx context.Context) error {
 	return nil
 }
 
+// GetByID resolves a short URL identifier into the original URL and a flag
+// indicating whether the URL has been logically deleted.
 func (u *Usecase) GetByID(ctx context.Context, s string) (string, bool, error) {
 	url, isDeleted, err := u.repo.Get(ctx, s)
 	if err != nil {
@@ -60,6 +67,9 @@ func (u *Usecase) GetByID(ctx context.Context, s string) (string, bool, error) {
 	return url, isDeleted, nil
 }
 
+// CreateShortURL generates a short URL for the provided original URL and
+// persists it for the specified user.
+// It returns the stored key and a flag indicating whether it already existed.
 func (u *Usecase) CreateShortURL(ctx context.Context, url, userID string) (string, bool, error) {
 	encodedURL := u.shortenURL()
 
@@ -76,6 +86,7 @@ func (u *Usecase) CreateShortURL(ctx context.Context, url, userID string) (strin
 	return shortURL, false, nil
 }
 
+// Ping checks availability of the underlying repository.
 func (u *Usecase) Ping(ctx context.Context) error {
 	err := u.repo.Ping(ctx)
 	if err != nil {
@@ -86,6 +97,8 @@ func (u *Usecase) Ping(ctx context.Context) error {
 	return nil
 }
 
+// BatchURLs shortens multiple URLs at once and mutates the slice in-place
+// so that each item contains its resulting short identifier.
 func (u *Usecase) BatchURLs(ctx context.Context, urls []entities.BatchItem, userID string) error {
 	for i := range urls {
 		urls[i].ShortURL = u.shortenURL()
@@ -103,6 +116,7 @@ func (u *Usecase) BatchURLs(ctx context.Context, urls []entities.BatchItem, user
 	return nil
 }
 
+// GetUsersUrls returns all URLs that were created by the given user.
 func (u *Usecase) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error) {
 	urls, err := u.repo.GetUsersUrls(ctx, userID)
 	if err != nil {
@@ -113,6 +127,7 @@ func (u *Usecase) GetUsersUrls(ctx context.Context, userID string) ([]entities.I
 	return urls, nil
 }
 
+// Delete marks a set of short URLs as deleted for the given user.
 func (u *Usecase) Delete(ctx context.Context, shortURL []string, userID string) error {
 	err := u.repo.Delete(ctx, shortURL, userID)
 	if err != nil {

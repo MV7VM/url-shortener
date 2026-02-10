@@ -9,15 +9,18 @@ import (
 	"go.uber.org/zap"
 )
 
+// URLPublisher sends audit events as JSON over HTTP to a configured endpoint.
 type URLPublisher struct {
 	url    string
 	logger *zap.Logger
 }
 
+// NewURLPublisher constructs a URLPublisher that posts events to the given URL.
 func NewURLPublisher(log *zap.Logger, url string) *URLPublisher {
 	return &URLPublisher{url: url, logger: log}
 }
 
+// Update marshals the event to JSON and performs an HTTP POST to the endpoint.
 func (p *URLPublisher) Update(s *entities.Event) {
 	eventJSON, err := json.Marshal(s)
 	if err != nil {

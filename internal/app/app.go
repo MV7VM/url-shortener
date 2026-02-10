@@ -14,6 +14,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// New constructs the Fx application wiring together config, logging,
+// repositories, use-cases, HTTP server and metrics pipeline.
 func New() *fx.App {
 	return fx.New(
 		fx.Options(

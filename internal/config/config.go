@@ -7,6 +7,8 @@ import (
 	"github.com/gofrs/uuid"
 )
 
+// NewConfig parses flags and environment variables and returns a populated Model.
+// A random HTTP secret token is generated on each application start.
 func NewConfig() (*Model, error) {
 	var cfg Model
 

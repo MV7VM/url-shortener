@@ -8,15 +8,18 @@ import (
 	"go.uber.org/zap"
 )
 
+// FilePublisher appends audit events to a local JSON lines file.
 type FilePublisher struct {
 	logger   *zap.Logger
 	filePath string
 }
 
+// NewFilePublisher constructs a FilePublisher that writes events to filePath.
 func NewFilePublisher(log *zap.Logger, filePath string) *FilePublisher {
 	return &FilePublisher{filePath: filePath, logger: log}
 }
 
+// Update serialises the event as JSON and writes it to the configured file.
 func (p *FilePublisher) Update(s *entities.Event) {
 	file, err := os.OpenFile(p.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {

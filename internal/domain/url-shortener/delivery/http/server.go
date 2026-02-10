@@ -1,5 +1,5 @@
 // Package http implements the public REST API facade over the business use-case
-// layer.  All endpoints are grouped under the legacy prefix "/app" for mobile
+// layer. All endpoints are grouped under the legacy prefix "/app" for mobile
 // backward-compatibility.
 package http
 
@@ -21,6 +21,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// Server exposes the public HTTP API of the URL shortener service.
+// It wires together Gin engine, business use-case layer and audit metrics.
 type Server struct {
 	logger  *zap.Logger
 	serv    *gin.Engine
@@ -38,6 +40,8 @@ type uc interface {
 	Delete(ctx context.Context, shortURL []string, userID string) error
 }
 
+// Auditor describes a component that receives events about user interaction
+// with short URLs (creation, redirects, deletions) for further processing.
 type Auditor interface {
 	Notify(event *entities.Event)
 }
@@ -77,6 +81,8 @@ func (s *Server) OnStop(_ context.Context) error {
 	return nil
 }
 
+// CreateShortURL handles POST "/" requests with a plain-text URL in the body
+// and returns a shortened URL as a text response.
 func (s *Server) CreateShortURL(c *gin.Context) {
 	// Получаем raw body
 	body, err := c.GetRawData()
@@ -118,14 +124,20 @@ func (s *Server) CreateShortURL(c *gin.Context) {
 	c.String(http.StatusCreated, s.cfg.HTTP.ReturningURL+shortURL)
 }
 
+// CreateShortURLByBodyReq describes the JSON payload for POST "/api/shorten",
+// where the original URL is passed in the "url" field.
 type CreateShortURLByBodyReq struct {
 	URL string `json:"url"`
 }
 
+// CreateShortURLByBodyResp describes the JSON response from POST "/api/shorten"
+// containing the resulting short URL in the "result" field.
 type CreateShortURLByBodyResp struct {
 	ShortURL string `json:"result"`
 }
 
+// CreateShortURLByBody handles POST "/api/shorten" with a JSON payload and
+// returns a JSON object with a shortened URL.
 func (s *Server) CreateShortURLByBody(c *gin.Context) {
 	// Получаем raw body
 	body, err := io.ReadAll(c.Request.Body)
@@ -182,6 +194,8 @@ func (s *Server) CreateShortURLByBody(c *gin.Context) {
 	})
 }
 
+// GetByID handles GET "/:id" requests and redirects the client to the original
+// URL if it exists and is not marked as deleted.
 func (s *Server) GetByID(c *gin.Context) {
 	id := c.Param("id")
 
@@ -208,6 +222,8 @@ func (s *Server) GetByID(c *gin.Context) {
 	c.Status(http.StatusTemporaryRedirect)
 }
 
+// Ping handles GET "/ping" requests and checks the availability of the
+// underlying storage via use-case Ping method.
 func (s *Server) Ping(c *gin.Context) {
 	err := s.uc.Ping(c.Request.Context())
 	if err != nil {
@@ -220,6 +236,8 @@ func (s *Server) Ping(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// BatchURL handles POST "/api/shorten/batch" requests and creates multiple
+// short URLs in a single call, returning the enriched batch payload.
 func (s *Server) BatchURL(c *gin.Context) { //todo 409
 	var batchedReq []entities.BatchItem
 	if err := c.ShouldBindJSON(&batchedReq); err != nil {
@@ -251,6 +269,8 @@ func (s *Server) BatchURL(c *gin.Context) { //todo 409
 	c.JSON(http.StatusCreated, batchedReq)
 }
 
+// GetUsersUrls handles GET "/api/user/urls" requests and returns all URLs
+// previously created by the authenticated user.
 func (s *Server) GetUsersUrls(c *gin.Context) {
 	urls, err := s.uc.GetUsersUrls(c.Request.Context(), c.GetString("userID"))
 	if err != nil {
@@ -270,6 +290,8 @@ func (s *Server) GetUsersUrls(c *gin.Context) {
 	c.JSON(http.StatusOK, urls)
 }
 
+// DeleteURLs handles DELETE "/api/user/urls" requests and accepts an array of
+// short URL identifiers that should be marked as deleted asynchronously.
 func (s *Server) DeleteURLs(c *gin.Context) {
 	var items []string
 

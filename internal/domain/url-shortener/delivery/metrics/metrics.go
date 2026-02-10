@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// NewMetricWrapper creates an audit event watcher and wires in all enabled
+// publishers (file and/or HTTP) according to the provided config.
 func NewMetricWrapper(log *zap.Logger, cfg *config.Model) (*watcher.Watcher, error) {
 	if cfg == nil {
 		log.Warn("config is nil")
