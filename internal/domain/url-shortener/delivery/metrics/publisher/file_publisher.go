@@ -1,3 +1,5 @@
+// Package publisher содержит publisher-ы метрик
+// для сервиса сокращения ссылок.
 package publisher
 
 import (
@@ -26,7 +28,12 @@ func (p *FilePublisher) Update(s *entities.Event) {
 		p.logger.Error("Failed to open file", zap.Error(err))
 		return
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			p.logger.Error("Failed to close file", zap.Error(err))
+		}
+	}(file)
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")

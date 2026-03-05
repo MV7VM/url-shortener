@@ -1,3 +1,5 @@
+// Package metrics содержит модели собиратель метрик
+// для сервиса сокращения ссылок.
 package metrics
 
 import (

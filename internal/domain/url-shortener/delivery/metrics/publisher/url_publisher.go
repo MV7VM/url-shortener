@@ -3,6 +3,7 @@ package publisher
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
@@ -40,5 +41,10 @@ func (p *URLPublisher) Update(s *entities.Event) {
 		p.logger.Error("failed to send request", zap.Error(err))
 		return
 	}
-	defer resp.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			p.logger.Error("failed to close response body", zap.Error(err))
+		}
+	}(resp.Body)
 }

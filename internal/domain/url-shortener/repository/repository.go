@@ -1,3 +1,5 @@
+// Package repository содержит логику работы с бд
+// для сервиса сокращения ссылок.
 package repository
 
 import (
@@ -54,7 +56,8 @@ func (r *Repo) OnStart(ctx context.Context) error {
 	}
 
 	if r.repository != r.psql {
-		r.psql.OnStart(ctx)
+		_ = r.psql.OnStart(ctx)
+
 	}
 
 	return nil

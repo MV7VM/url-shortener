@@ -1,3 +1,5 @@
+// Package config содержит конфиг
+// для сервиса сокращения ссылок.
 package config
 
 import (

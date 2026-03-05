@@ -1,3 +1,5 @@
+// Package entities содержит модели
+// для сервиса сокращения ссылок.
 package entities
 
 // CtxKeyString is a helper type for context keys used inside the project.

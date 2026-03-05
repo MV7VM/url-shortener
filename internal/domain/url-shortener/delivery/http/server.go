@@ -307,7 +307,12 @@ func (s *Server) DeleteURLs(c *gin.Context) {
 	//В случае успешного приёма запроса хендлер должен возвращать HTTP-статус 202 Accepted.
 	//Фактический результат удаления может происходить позже — оповещать пользователя об успешности или неуспешности не нужно.
 	//context.Background() применен исходя из задания
-	go s.uc.Delete(c, items, c.GetString("userID"))
+	go func() {
+		err := s.uc.Delete(c, items, c.GetString("userID"))
+		if err != nil {
+			s.logger.Error("failed to delete urls", zap.Error(err))
+		}
+	}()
 
 	c.AbortWithStatus(http.StatusAccepted)
 }

@@ -1,3 +1,5 @@
+// Package cache содержит логику работы с cache
+// для сервиса сокращения ссылок.
 package cache
 
 import (
@@ -92,7 +94,9 @@ func (r *Repository) recovery() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
 
 	stat, err := file.Stat()
 	if err != nil {
@@ -125,7 +129,9 @@ func (r *Repository) save() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
 
 	items := make([]entities.Item, 0)
 	r.db.Range(func(k, v any) bool {

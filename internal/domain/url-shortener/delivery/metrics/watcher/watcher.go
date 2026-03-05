@@ -1,3 +1,5 @@
+// Package watcher содержит оповещалель о метриках
+// для сервиса сокращения ссылок.
 package watcher
 
 import "github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
