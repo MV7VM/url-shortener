@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/MV7VM/url-shortener/internal/config"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/metrics/watcher"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -86,8 +87,9 @@ func TestServer_CreateShortURL_Success(t *testing.T) {
 	}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 		cfg: &config.Model{
 			HTTP: config.HTTPConfig{
 				ReturningURL: "http://localhost:8080/",
@@ -112,8 +114,9 @@ func TestServer_CreateShortURL_EmptyBody(t *testing.T) {
 	mockUC := &mockUsecase{}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 	}
 
 	router := setupTestRouter(server)
@@ -135,8 +138,9 @@ func TestServer_CreateShortURL_UsecaseError(t *testing.T) {
 	}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 	}
 
 	router := setupTestRouter(server)
@@ -165,8 +169,9 @@ func TestServer_CreateShortURL_WithWhitespace(t *testing.T) {
 	}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 		cfg: &config.Model{
 			HTTP: config.HTTPConfig{
 				ReturningURL: "http://localhost:8080/",
@@ -196,8 +201,9 @@ func TestServer_GetByID_Success(t *testing.T) {
 	}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 	}
 
 	router := setupTestRouter(server)
@@ -221,8 +227,9 @@ func TestServer_GetByID_NotFound(t *testing.T) {
 	}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 	}
 
 	router := setupTestRouter(server)
@@ -245,8 +252,9 @@ func TestServer_CreateShortURLByBody_Success(t *testing.T) {
 	}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 		cfg: &config.Model{
 			HTTP: config.HTTPConfig{
 				ReturningURL: "http://localhost:8080/",
@@ -280,8 +288,9 @@ func TestServer_Ping_Success(t *testing.T) {
 	}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 	}
 
 	router := setupTestRouter(server)
@@ -303,8 +312,9 @@ func TestServer_Ping_Error(t *testing.T) {
 	}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 	}
 
 	router := setupTestRouter(server)
@@ -325,8 +335,9 @@ func TestServer_Ping_Error(t *testing.T) {
 func TestServer_CreateShortURLByBody_InvalidURL(t *testing.T) {
 	logger := zap.NewNop()
 	server := &Server{
-		logger: logger,
-		uc:     &mockUsecase{},
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      &mockUsecase{},
 	}
 
 	router := setupTestRouter(server)
@@ -354,8 +365,9 @@ func TestServer_CreateShortURLByBody_UsecaseError(t *testing.T) {
 	}
 
 	server := &Server{
-		logger: logger,
-		uc:     mockUC,
+		auditor: watcher.NewWatcher(),
+		logger:  logger,
+		uc:      mockUC,
 	}
 
 	router := setupTestRouter(server)

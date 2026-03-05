@@ -18,11 +18,16 @@ type repository interface {
 	OnStop(_ context.Context) error
 }
 
+// Repo is a façade over a concrete repository implementation (cache or Postgres)
+// that also keeps a direct reference to the PostgreSQL repository for features
+// that are only available in the DB-backed storage.
 type Repo struct {
 	repository
 	psql *postgres.Repository
 }
 
+// NewRepo selects an appropriate repository implementation based on config
+// and returns a composite Repo instance that satisfies the use-case needs.
 func NewRepo(ctx context.Context, cfg *config.Model) (*Repo, error) {
 	psql, err := postgres.NewRepository(ctx, cfg)
 	if err != nil {
