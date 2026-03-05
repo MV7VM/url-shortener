@@ -28,12 +28,12 @@ func (p *FilePublisher) Update(s *entities.Event) {
 		p.logger.Error("Failed to open file", zap.Error(err))
 		return
 	}
-	defer func(file *os.File) {
+	defer func() {
 		err = file.Close()
 		if err != nil {
 			p.logger.Error("Failed to close file", zap.Error(err))
 		}
-	}(file)
+	}()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")

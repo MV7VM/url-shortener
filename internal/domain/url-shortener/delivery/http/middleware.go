@@ -167,12 +167,12 @@ func (s *Server) gzipMiddleware(handler gin.HandlerFunc) gin.HandlerFunc {
 			c.Writer = cw
 			c.Header("Content-Encoding", "gzip")
 			// не забываем отправить клиенту все сжатые данные после завершения middleware
-			defer func(cw *gzipWriter) {
+			defer func() {
 				err := cw.Close()
 				if err != nil {
 					s.logger.Warn("failed to close gzip writer", zap.Error(err))
 				}
-			}(cw)
+			}()
 		}
 
 		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
@@ -187,12 +187,12 @@ func (s *Server) gzipMiddleware(handler gin.HandlerFunc) gin.HandlerFunc {
 			}
 			// меняем тело запроса на новое
 			c.Request.Body = cr
-			defer func(cr *gzipReader) {
+			defer func() {
 				err := cr.Close()
 				if err != nil {
 					s.logger.Warn("failed to close gzip writer", zap.Error(err))
 				}
-			}(cr)
+			}()
 		}
 
 		// передаём управление хендлеру

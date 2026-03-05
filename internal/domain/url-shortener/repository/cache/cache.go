@@ -94,9 +94,12 @@ func (r *Repository) recovery() error {
 	if err != nil {
 		return err
 	}
-	defer func(file *os.File) {
-		_ = file.Close()
-	}(file)
+	defer func() {
+		err = file.Close()
+		if err != nil {
+			return
+		}
+	}()
 
 	stat, err := file.Stat()
 	if err != nil {
@@ -130,7 +133,10 @@ func (r *Repository) save() error {
 		return err
 	}
 	defer func(file *os.File) {
-		_ = file.Close()
+		err = file.Close()
+		if err != nil {
+			return
+		}
 	}(file)
 
 	items := make([]entities.Item, 0)
