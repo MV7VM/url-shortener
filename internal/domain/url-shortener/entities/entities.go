@@ -27,6 +27,7 @@ type BatchItem struct {
 }
 
 // Event describes a high-level user action that can be sent to auditors.
+// generate:reset
 type Event struct {
 	TS     int    `json:"ts"`
 	Action string `json:"action"`
