@@ -1,6 +1,6 @@
 module github.com/MV7VM/url-shortener
 
-go 1.24.10
+go 1.24.13
 
 require (
 	github.com/gin-contrib/pprof v1.5.3
