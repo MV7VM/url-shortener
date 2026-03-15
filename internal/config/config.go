@@ -43,8 +43,8 @@ func NewConfig() (*Model, error) {
 		cfg.Audit.AuditURL = url
 	}
 
-	if isSecured := os.Getenv("ENABLE_HTTPS"); isSecured != "" && !cfg.HTTP.IsSecured {
-
+	if _, ok := os.LookupEnv("ENABLE_HTTPS"); ok && !cfg.HTTP.IsSecured {
+		cfg.HTTP.IsSecured = true
 	}
 
 	secretKey, err := uuid.NewV7()
