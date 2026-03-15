@@ -17,6 +17,7 @@ import (
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/metrics/watcher"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
+	"github.com/gin-contrib/graceful"
 	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/gin-gonic/gin"
@@ -27,7 +28,7 @@ import (
 // It wires together Gin engine, business use-case layer and audit metrics.
 type Server struct {
 	logger  *zap.Logger
-	serv    *gin.Engine
+	serv    *graceful.Graceful
 	cfg     *config.Model
 	uc      uc
 	auditor Auditor
@@ -53,10 +54,16 @@ func NewServer(logger *zap.Logger, cfg *config.Model, uc *usecase.Usecase, audit
 	if cfg.HTTP.ReturningURL[len(cfg.HTTP.ReturningURL)-1] != '/' {
 		cfg.HTTP.ReturningURL += "/"
 	}
+
+	s, err := graceful.Default()
+	if err != nil {
+		logger.Error("failed to creating http server", zap.Error(err))
+		return nil, err
+	}
 	// Gin already installs its own recovery & logging middleware; leave as-is.
 	return &Server{
 		logger:  logger,
-		serv:    gin.Default(),
+		serv:    s,
 		uc:      uc,
 		cfg:     cfg,
 		auditor: auditor,
@@ -102,8 +109,15 @@ func (s *Server) OnStart(_ context.Context) error {
 }
 
 // OnStop is a no-op here (Gin has no explicit shutdown hook).
-func (s *Server) OnStop(_ context.Context) error {
+func (s *Server) OnStop(ctx context.Context) error {
 	s.logger.Info("HTTP server stopped")
+
+	err := s.serv.Shutdown(ctx)
+	if err != nil {
+		s.logger.Error("HTTP server shutdown", zap.Error(err))
+		return err
+	}
+
 	return nil
 }
 
