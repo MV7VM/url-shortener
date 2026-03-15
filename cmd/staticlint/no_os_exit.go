@@ -1,5 +1,5 @@
 // Package linter проверяет отсутствие os.exit
-package linter
+package main
 
 import (
 	"go/ast"
