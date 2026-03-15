@@ -1,5 +1,5 @@
 // Package linter проверяет отсутствие panic
-package main
+package linter
 
 import (
 	"go/ast"

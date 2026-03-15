@@ -1,5 +1,5 @@
 // Package linter проверяет отсутствие log.fatal
-package main
+package linter
 
 import (
 	"go/ast"
