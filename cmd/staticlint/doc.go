@@ -91,4 +91,4 @@
 //   - дополнительные публичные анализаторы errcheck и ineffassign;
 //   - доменно‑специфичный анализатор noosexitAnalyzer, описывающий
 //     архитектурное ограничение проекта.
-package main
+package linter

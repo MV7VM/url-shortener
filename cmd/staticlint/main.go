@@ -1,4 +1,4 @@
-package main
+package linter
 
 import (
 	"strings"
@@ -92,7 +92,9 @@ func buildAnalyzers() []*analysis.Analyzer {
 	analyzers = append(analyzers,
 		errcheck.Analyzer,    // Checks for unchecked errors.
 		ineffassign.Analyzer, // Detects ineffectual assignments.
-		noOsExitAnalyzer,     // Custom analyzer for this project.
+		NoOsExitAnalyzer,     // Custom analyzer for this project.
+		NoLogFatalAnalyzer,
+		NoPanicAnalyzer,
 	)
 
 	return analyzers
