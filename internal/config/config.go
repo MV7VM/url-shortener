@@ -23,6 +23,8 @@ func NewConfig() (*Model, error) {
 	flag.StringVar(&cfg.Audit.AuditFilePath, "audit-file", "", "file for recovery storage")
 	flag.StringVar(&cfg.Audit.AuditURL, "audit-url", "", "file for recovery storage")
 
+	cfg.HTTP.IsSecured = *flag.Bool("s", false, "описание флага -s")
+
 	flag.Parse()
 
 	if filePath := os.Getenv("FILE_STORAGE_PATH"); filePath != "" {
@@ -39,6 +41,10 @@ func NewConfig() (*Model, error) {
 
 	if url := os.Getenv("AUDIT_URL"); url != "" {
 		cfg.Audit.AuditURL = url
+	}
+
+	if isSecured := os.Getenv("ENABLE_HTTPS"); isSecured != "" && !cfg.HTTP.IsSecured {
+
 	}
 
 	secretKey, err := uuid.NewV7()

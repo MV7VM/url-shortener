@@ -5,6 +5,7 @@ package http
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/metrics/watcher"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
+	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -66,9 +68,35 @@ func (s *Server) OnStart(_ context.Context) error {
 	go func() {
 		s.createController()
 
-		s.logger.Info("HTTP server started", zap.String("addr", s.cfg.HTTP.Host))
-		if err := s.serv.Run(s.cfg.HTTP.Host); err != nil {
-			s.logger.Error("HTTP server exited", zap.Error(err))
+		s.logger.Info("HTTP server starting", zap.String("addr", s.cfg.HTTP.Host))
+
+		if s.cfg.HTTP.IsSecured {
+			s.logger.Info("HTTP server secured starting", zap.String("addr", s.cfg.HTTP.Host))
+
+			manager := &autocert.Manager{
+				// директория для хранения сертификатов
+				Cache: autocert.DirCache("cache-dir"),
+				// функция, принимающая Terms of Service издателя сертификатов
+				Prompt: autocert.AcceptTOS,
+				// перечень доменов, для которых будут поддерживаться сертификаты
+				HostPolicy: autocert.HostWhitelist(s.cfg.HTTP.Host),
+			}
+
+			manager.TLSConfig()
+
+			listen, err := tls.Listen("tcp", s.cfg.HTTP.Host, manager.TLSConfig())
+			if err != nil {
+				return
+			}
+
+			if err = http.Serve(listen, s.serv); err != nil {
+				s.logger.Error("HTTP server exited", zap.Error(err))
+			}
+
+		} else {
+			if err := s.serv.Run(s.cfg.HTTP.Host); err != nil {
+				s.logger.Error("HTTP server exited", zap.Error(err))
+			}
 		}
 	}()
 
