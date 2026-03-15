@@ -82,8 +82,6 @@ func (s *Server) OnStart(_ context.Context) error {
 				HostPolicy: autocert.HostWhitelist(s.cfg.HTTP.Host),
 			}
 
-			manager.TLSConfig()
-
 			listen, err := tls.Listen("tcp", s.cfg.HTTP.Host, manager.TLSConfig())
 			if err != nil {
 				return
