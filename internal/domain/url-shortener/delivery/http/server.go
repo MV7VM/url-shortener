@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -78,6 +79,13 @@ func (s *Server) OnStart(_ context.Context) error {
 		s.logger.Info("HTTP server starting", zap.String("addr", s.cfg.HTTP.Host))
 
 		if s.cfg.HTTP.IsSecured {
+			hostForAutocert := s.cfg.HTTP.Host
+			if host, _, err := net.SplitHostPort(s.cfg.HTTP.Host); err == nil && host != "" {
+				hostForAutocert = host
+			} else {
+				hostForAutocert = strings.Trim(hostForAutocert, "[]")
+			}
+
 			s.logger.Info("HTTP server secured starting", zap.String("addr", s.cfg.HTTP.Host))
 
 			manager := &autocert.Manager{
@@ -86,7 +94,7 @@ func (s *Server) OnStart(_ context.Context) error {
 				// функция, принимающая Terms of Service издателя сертификатов
 				Prompt: autocert.AcceptTOS,
 				// перечень доменов, для которых будут поддерживаться сертификаты
-				HostPolicy: autocert.HostWhitelist(s.cfg.HTTP.Host),
+				HostPolicy: autocert.HostWhitelist(hostForAutocert),
 			}
 
 			listen, err := tls.Listen("tcp", s.cfg.HTTP.Host, manager.TLSConfig())
