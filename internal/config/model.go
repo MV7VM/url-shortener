@@ -9,10 +9,11 @@ type Model struct {
 
 // HTTPConfig contains network and HTTP-related settings.
 type HTTPConfig struct {
-	Host         string
-	ReturningURL string
-	SecretToken  string
-	IsSecured    bool
+	Host          string
+	ReturningURL  string
+	SecretToken   string
+	IsSecured     bool
+	TrustedSubnet string `json:"trusted_subnet"`
 }
 
 // RepoConfig groups configuration for cache and PostgreSQL repositories.
