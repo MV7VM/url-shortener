@@ -11,6 +11,7 @@ import (
 	"github.com/MV7VM/url-shortener/internal/config"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/metrics/watcher"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
+	"github.com/gin-contrib/graceful"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
@@ -60,9 +61,14 @@ func ExampleServer_CreateShortURL() {
 		},
 	}
 
+	g, err := graceful.New(gin.New())
+	if err != nil {
+		return
+	}
+
 	server := &Server{
 		logger:  logger,
-		serv:    gin.New(),
+		serv:    g,
 		cfg:     cfg,
 		auditor: watcher.NewWatcher(),
 		uc:      exampleUC{},
@@ -93,9 +99,14 @@ func ExampleServer_CreateShortURLByBody() {
 		},
 	}
 
+	g, err := graceful.New(gin.New())
+	if err != nil {
+		return
+	}
+
 	server := &Server{
 		logger:  logger,
-		serv:    gin.New(),
+		serv:    g,
 		cfg:     cfg,
 		auditor: watcher.NewWatcher(),
 		uc:      exampleUC{},
@@ -133,9 +144,14 @@ func ExampleServer_BatchURL() {
 		},
 	}
 
+	g, err := graceful.New(gin.New())
+	if err != nil {
+		return
+	}
+
 	server := &Server{
 		logger:  logger,
-		serv:    gin.New(),
+		serv:    g,
 		cfg:     cfg,
 		auditor: watcher.NewWatcher(),
 		uc:      exampleUC{},

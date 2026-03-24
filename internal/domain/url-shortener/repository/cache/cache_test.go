@@ -105,9 +105,21 @@ func TestRepository_MultipleKeys(t *testing.T) {
 	ctx := context.Background()
 
 	// Сохраняем несколько ключей
-	repo.Set(ctx, "key1", "https://example1.com", "")
-	repo.Set(ctx, "key2", "https://example2.com", "")
-	repo.Set(ctx, "key3", "https://example3.com", "")
+	_, err := repo.Set(ctx, "key1", "https://example1.com", "")
+	if err != nil {
+		require.NoError(t, err)
+		return
+	}
+	_, err = repo.Set(ctx, "key2", "https://example2.com", "")
+	if err != nil {
+		require.NoError(t, err)
+		return
+	}
+	_, err = repo.Set(ctx, "key3", "https://example3.com", "")
+	if err != nil {
+		require.NoError(t, err)
+		return
+	}
 
 	// Получаем все ключи
 	value1, _, err1 := repo.Get(ctx, "key1")

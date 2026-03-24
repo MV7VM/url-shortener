@@ -12,6 +12,7 @@ type HTTPConfig struct {
 	Host         string
 	ReturningURL string
 	SecretToken  string
+	IsSecured    bool
 }
 
 // RepoConfig groups configuration for cache and PostgreSQL repositories.

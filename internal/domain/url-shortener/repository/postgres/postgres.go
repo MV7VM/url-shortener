@@ -1,3 +1,5 @@
+// Package postgres содержит логику работы с postgres
+// для сервиса сокращения ссылок.
 package postgres
 
 // Package postgres implements the pgx-based data-access layer.
@@ -203,7 +205,9 @@ func (r *Repository) withTx(ctx context.Context, f func(context.Context) error) 
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func(tx pgx.Tx, ctx context.Context) {
+		_ = tx.Rollback(ctx)
+	}(tx, ctx)
 
 	ctxTx := context.WithValue(ctx, txKey, tx)
 

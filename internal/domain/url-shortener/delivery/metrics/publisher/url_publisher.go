@@ -40,5 +40,10 @@ func (p *URLPublisher) Update(s *entities.Event) {
 		p.logger.Error("failed to send request", zap.Error(err))
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		err = resp.Body.Close()
+		if err != nil {
+			p.logger.Error("failed to close response body", zap.Error(err))
+		}
+	}()
 }
