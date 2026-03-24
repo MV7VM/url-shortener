@@ -19,11 +19,12 @@ import (
 )
 
 type mockUsecase struct {
-	GetByIDFunc        func(context.Context, string) (string, bool, error)
-	CreateShortURLFunc func(context.Context, string, string) (string, bool, error)
-	PingFunc           func(context.Context) error
-	GetUsersUrlsFunc   func(ctx context.Context, userID string) ([]entities.Item, error)
-	BatchURLsFunc      func(ctx context.Context, urls []entities.BatchItem, userID string) error
+	GetByIDFunc         func(context.Context, string) (string, bool, error)
+	CreateShortURLFunc  func(context.Context, string, string) (string, bool, error)
+	PingFunc            func(context.Context) error
+	GetUsersUrlsFunc    func(ctx context.Context, userID string) ([]entities.Item, error)
+	BatchURLsFunc       func(ctx context.Context, urls []entities.BatchItem, userID string) error
+	GetURLStatisticFunc func(ctx context.Context) (entities.URLStatistic, error)
 }
 
 func (m *mockUsecase) Delete(ctx context.Context, shortURL []string, userID string) error {
@@ -64,6 +65,13 @@ func (m *mockUsecase) Ping(ctx context.Context) error {
 		return m.PingFunc(ctx)
 	}
 	return nil
+}
+
+func (m *mockUsecase) GetURLStatistic(ctx context.Context) (entities.URLStatistic, error) {
+	if m.GetUsersUrlsFunc != nil {
+		return m.GetURLStatisticFunc(ctx)
+	}
+	return entities.URLStatistic{}, nil
 }
 
 func setupTestRouter(s *Server) *gin.Engine {

@@ -89,6 +89,27 @@ func (r *Repository) GetUsersUrls(ctx context.Context, userID string) ([]entitie
 	return urls, nil
 }
 
+func (r *Repository) GetURLStatistic(ctx context.Context) (entities.URLStatistic, error) {
+	stat := entities.URLStatistic{}
+	uMap := make(map[string]struct{})
+
+	r.db.Range(func(k, v interface{}) bool {
+		if _, okValue := v.(Value); !okValue {
+			return true
+		}
+
+		stat.Urls += 1
+		if _, ok := uMap[v.(Value).UserID]; !ok {
+			uMap[v.(Value).UserID] = struct{}{}
+			stat.Users += 1
+		}
+
+		return true
+	})
+
+	return stat, nil
+}
+
 func (r *Repository) recovery() error {
 	file, err := os.OpenFile(r.cfg.Repo.SavingFilePath, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {

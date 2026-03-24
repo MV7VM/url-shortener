@@ -13,10 +13,11 @@ import (
 
 // mockRepo мок для интерфейса repo
 type mockRepo struct {
-	GetFunc      func(context.Context, string) (string, bool, error)
-	SetFunc      func(context.Context, string, string, string) (string, error)
-	GetCountFunc func(context.Context) (int, error)
-	PingFunc     func(context.Context) error
+	GetFunc          func(context.Context, string) (string, bool, error)
+	SetFunc          func(context.Context, string, string, string) (string, error)
+	GetCountFunc     func(context.Context) (int, error)
+	PingFunc         func(context.Context) error
+	GetUsersUrlsFunc func(ctx context.Context) (entities.URLStatistic, error)
 }
 
 func (m *mockRepo) Delete(ctx context.Context, shortURL []string, userID string) error {
@@ -53,6 +54,13 @@ func (m *mockRepo) Ping(ctx context.Context) error {
 		return m.PingFunc(ctx)
 	}
 	return nil
+}
+
+func (m *mockRepo) GetURLStatistic(ctx context.Context) (entities.URLStatistic, error) {
+	if m.GetUsersUrlsFunc != nil {
+		return m.GetUsersUrlsFunc(ctx)
+	}
+	return entities.URLStatistic{}, nil
 }
 
 func TestUsecase_OnStart_Success(t *testing.T) {

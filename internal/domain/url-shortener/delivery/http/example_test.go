@@ -20,6 +20,13 @@ import (
 // used only in documentation examples.
 type exampleUC struct{}
 
+func (u exampleUC) GetURLStatistic(ctx context.Context) (entities.URLStatistic, error) {
+	return entities.URLStatistic{
+		Urls:  1,
+		Users: 1,
+	}, nil
+}
+
 func (exampleUC) GetByID(ctx context.Context, id string) (string, bool, error) {
 	return "https://example.com", false, nil
 }
