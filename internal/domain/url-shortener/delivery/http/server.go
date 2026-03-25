@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/MV7VM/url-shortener/internal/config"
@@ -33,6 +34,7 @@ type Server struct {
 	cfg     *config.Model
 	uc      uc
 	auditor Auditor
+	once    sync.Once
 }
 
 type uc interface {
@@ -75,7 +77,7 @@ func NewServer(logger *zap.Logger, cfg *config.Model, uc *usecase.Usecase, audit
 // OnStart registers routes and launches an HTTP listener in a goroutine.
 func (s *Server) OnStart(_ context.Context) error {
 	go func() {
-		s.createController()
+		s.initRoutes()
 
 		s.logger.Info("HTTP server starting", zap.String("addr", s.cfg.HTTP.Host))
 
@@ -115,6 +117,21 @@ func (s *Server) OnStart(_ context.Context) error {
 	}()
 
 	return nil
+}
+
+func (s *Server) initRoutes() {
+	s.once.Do(func() {
+		s.createController()
+	})
+}
+
+// Serve starts HTTP handling on the provided listener.
+// This mode is used by a shared TCP multiplexer.
+func (s *Server) Serve(lis net.Listener) error {
+	s.initRoutes()
+
+	s.logger.Info("HTTP server starting", zap.String("addr", lis.Addr().String()))
+	return http.Serve(lis, s.serv)
 }
 
 // OnStop is a no-op here (Gin has no explicit shutdown hook).

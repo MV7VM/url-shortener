@@ -11,6 +11,7 @@ require (
 	github.com/gordonklaus/ineffassign v0.2.0
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/kisielk/errcheck v1.10.0
+	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.27.1

@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/url"
 	"strings"
+	"sync"
 
 	"github.com/MV7VM/url-shortener/internal/config"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/entities"
@@ -31,6 +32,7 @@ type Server struct {
 	serv   *grpc.Server
 	cfg    *config.Model
 	uc     uc
+	once   sync.Once
 
 	shortener_v1.UnimplementedShortenerServiceServer
 }
@@ -70,9 +72,7 @@ func (s *Server) OnStart(_ context.Context) error {
 		return err
 	}
 
-	shortener_v1.RegisterShortenerServiceServer(s.serv, s)
-
-	reflection.Register(s.serv)
+	s.register()
 
 	go func() {
 		if err := s.serv.Serve(lis); err != nil {
@@ -81,6 +81,21 @@ func (s *Server) OnStart(_ context.Context) error {
 	}()
 
 	return nil
+}
+
+func (s *Server) register() {
+	s.once.Do(func() {
+		shortener_v1.RegisterShortenerServiceServer(s.serv, s)
+		reflection.Register(s.serv)
+	})
+}
+
+// Serve starts gRPC handling on the provided listener.
+// This mode is used by a shared TCP multiplexer.
+func (s *Server) Serve(lis net.Listener) error {
+	s.register()
+	s.logger.Info("grpc server starting", zap.String("addr", lis.Addr().String()))
+	return s.serv.Serve(lis)
 }
 
 // OnStop is a no-op here (Gin has no explicit shutdown hook).
