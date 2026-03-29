@@ -183,7 +183,7 @@ func (s *Server) getUserIDFromCtx(ctx context.Context) (string, error) {
 	return userID, nil
 }
 
-func (s *Server) authInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func (s *Server) authInterceptor(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	var (
 		token string
 		err   error
@@ -218,7 +218,11 @@ func (s *Server) authInterceptor(ctx context.Context, req interface{}, info *grp
 
 	if claims, ok := tokenParsed.Claims.(jwt.MapClaims); ok && tokenParsed.Valid {
 		for key, value := range claims {
-			md.Append(key, value.(string))
+			vString, ok := value.(string)
+			if !ok {
+				continue
+			}
+			md.Append(key, vString)
 		}
 	}
 
