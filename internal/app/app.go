@@ -6,8 +6,8 @@ import (
 	"context"
 
 	"github.com/MV7VM/url-shortener/internal/config"
-	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/http"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/metrics"
+	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/delivery/mux"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/repository"
 	"github.com/MV7VM/url-shortener/internal/domain/url-shortener/usecase"
 
@@ -23,7 +23,7 @@ func New() *fx.App {
 		fx.Options(
 			repository.New(), //
 			usecase.New(),
-			http.New(),
+			mux.New(),
 			metrics.New(),
 		),
 		fx.Provide(

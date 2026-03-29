@@ -16,6 +16,7 @@ type repository interface {
 	Get(ctx context.Context, s string) (string, bool, error)
 	GetCount(ctx context.Context) (int, error)
 	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
+	GetURLStatistic(ctx context.Context) (entities.URLStatistic, error)
 	OnStart(_ context.Context) error
 	OnStop(_ context.Context) error
 }
@@ -103,4 +104,8 @@ func (r *Repo) GetUsersUrls(ctx context.Context, userID string) ([]entities.Item
 
 func (r *Repo) Delete(ctx context.Context, shortURL []string, userID string) error {
 	return r.psql.Delete(ctx, shortURL, userID)
+}
+
+func (r *Repo) GetURLStatistic(ctx context.Context) (entities.URLStatistic, error) {
+	return r.repository.GetURLStatistic(ctx)
 }

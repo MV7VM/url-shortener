@@ -35,6 +35,7 @@ type repo interface {
 	Ping(ctx context.Context) error
 	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
 	Delete(ctx context.Context, shortURL []string, userID string) error
+	GetURLStatistic(ctx context.Context) (entities.URLStatistic, error)
 }
 
 // NewUsecase constructs a new Usecase instance backed by the given repository.
@@ -138,6 +139,16 @@ func (u *Usecase) Delete(ctx context.Context, shortURL []string, userID string) 
 	}
 
 	return nil
+}
+
+func (u *Usecase) GetURLStatistic(ctx context.Context) (entities.URLStatistic, error) {
+	urls, err := u.repo.GetURLStatistic(ctx)
+	if err != nil {
+		u.log.Error("failed to get url statistic", zap.Error(err))
+		return entities.URLStatistic{}, err
+	}
+
+	return urls, nil
 }
 
 func (u *Usecase) shortenURL() string {

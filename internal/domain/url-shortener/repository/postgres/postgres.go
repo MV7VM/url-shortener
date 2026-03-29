@@ -168,6 +168,24 @@ func (r *Repository) Delete(ctx context.Context, shortURL []string, userID strin
 	return nil
 }
 
+const qGetURLStatistic = `
+SELECT
+    COUNT(*) AS total_urls,
+    COUNT(DISTINCT user_id) AS total_users
+FROM shortener.urls
+`
+
+func (r *Repository) GetURLStatistic(ctx context.Context) (entities.URLStatistic, error) {
+	stat := entities.URLStatistic{}
+
+	err := r.db.QueryRow(ctx, qGetURLStatistic).Scan(&stat.Urls, &stat.Users)
+	if err != nil {
+		return entities.URLStatistic{}, err
+	}
+
+	return stat, nil
+}
+
 // migrate создает схему и таблицу для хранения URL, если они не существуют.
 // Если tx == nil, операции выполняются напрямую через пул соединений.
 func (r *Repository) migrate(ctx context.Context, tx pgx.Tx) error {
