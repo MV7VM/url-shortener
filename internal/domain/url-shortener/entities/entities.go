@@ -72,3 +72,8 @@ func (p *Pool[T]) Put(v T) {
 	v.Reset()
 	p.pool.Put(v)
 }
+
+type URLStatistic struct {
+	Urls  int `json:"urls"`
+	Users int `json:"users"`
+}

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/MV7VM/url-shortener/internal/config"
@@ -33,6 +34,7 @@ type Server struct {
 	cfg     *config.Model
 	uc      uc
 	auditor Auditor
+	once    sync.Once
 }
 
 type uc interface {
@@ -42,6 +44,7 @@ type uc interface {
 	BatchURLs(ctx context.Context, urls []entities.BatchItem, userID string) error
 	GetUsersUrls(ctx context.Context, userID string) ([]entities.Item, error)
 	Delete(ctx context.Context, shortURL []string, userID string) error
+	GetURLStatistic(ctx context.Context) (entities.URLStatistic, error)
 }
 
 // Auditor describes a component that receives events about user interaction
@@ -74,7 +77,7 @@ func NewServer(logger *zap.Logger, cfg *config.Model, uc *usecase.Usecase, audit
 // OnStart registers routes and launches an HTTP listener in a goroutine.
 func (s *Server) OnStart(_ context.Context) error {
 	go func() {
-		s.createController()
+		s.initRoutes()
 
 		s.logger.Info("HTTP server starting", zap.String("addr", s.cfg.HTTP.Host))
 
@@ -114,6 +117,21 @@ func (s *Server) OnStart(_ context.Context) error {
 	}()
 
 	return nil
+}
+
+func (s *Server) initRoutes() {
+	s.once.Do(func() {
+		s.createController()
+	})
+}
+
+// Serve starts HTTP handling on the provided listener.
+// This mode is used by a shared TCP multiplexer.
+func (s *Server) Serve(lis net.Listener) error {
+	s.initRoutes()
+
+	s.logger.Info("HTTP server starting", zap.String("addr", lis.Addr().String()))
+	return http.Serve(lis, s.serv)
 }
 
 // OnStop is a no-op here (Gin has no explicit shutdown hook).
@@ -363,6 +381,55 @@ func (s *Server) DeleteURLs(c *gin.Context) {
 	}()
 
 	c.AbortWithStatus(http.StatusAccepted)
+}
+
+func (s *Server) GetURLStatistic(c *gin.Context) {
+	// Проверяем, что доверенная подсеть настроена
+	if s.cfg.HTTP.TrustedSubnet == "" {
+		s.logger.Error("trusted subnet is not configured")
+		c.JSON(http.StatusForbidden, gin.H{"error": "server configuration error"})
+		return
+	}
+
+	// Получаем IP из заголовка X-Real-IP
+	realIP := c.GetHeader("X-Real-IP")
+	if realIP == "" {
+		s.logger.Warn("X-Real-IP header is missing")
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+
+	// Парсим доверенную подсеть
+	_, trustedNet, err := net.ParseCIDR(s.cfg.HTTP.TrustedSubnet)
+	if err != nil {
+		s.logger.Error("invalid trusted subnet", zap.Error(err))
+		c.JSON(http.StatusForbidden, gin.H{"error": "server configuration error"})
+		return
+	}
+
+	// Парсим IP-адрес клиента
+	clientIP := net.ParseIP(realIP)
+	if clientIP == nil {
+		s.logger.Warn("invalid X-Real-IP header", zap.String("ip", realIP))
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+
+	// Проверяем, входит ли IP в доверенную подсеть
+	if !trustedNet.Contains(clientIP) {
+		s.logger.Warn("IP not in trusted subnet", zap.String("ip", realIP))
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+
+	statistic, err := s.uc.GetURLStatistic(c)
+	if err != nil {
+		s.logger.Error("failed to get url statistic", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, statistic)
 }
 
 func validateURL(urlStr string) bool {

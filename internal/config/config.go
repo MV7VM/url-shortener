@@ -21,6 +21,7 @@ type fileConfig struct {
 	EnableHTTPS   *bool  `json:"enable_https"`
 	AuditFilePath string `json:"audit_file_path"`
 	AuditURL      string `json:"audit_url"`
+	TrustedSubnet string `json:"trusted_subnet"`
 }
 
 // NewConfig parses configuration in the following priority (low → high):
@@ -58,6 +59,7 @@ func NewConfig() (*Model, error) {
 	fileStorageFlag := flag.String("f", "", "file for recovery storage")
 	dsnFlag := flag.String("d", "", "database DSN")
 	enableHTTPSFlag := flag.Bool("s", false, "enable HTTPS")
+	TrustedSubnet := flag.String("t", "", "Trusted Subnet")
 
 	flag.StringVar(&jsonConf.AuditFilePath, "audit-file", "", "audit log file path")
 	flag.StringVar(&jsonConf.AuditURL, "audit-url", "", "audit HTTP endpoint")
@@ -100,6 +102,9 @@ func NewConfig() (*Model, error) {
 	if jsonConf.AuditURL != "" {
 		cfg.Audit.AuditURL = jsonConf.AuditURL
 	}
+	if jsonConf.TrustedSubnet != "" {
+		cfg.HTTP.TrustedSubnet = jsonConf.TrustedSubnet
+	}
 
 	// Flags override JSON.
 	if *hostFlag != "" {
@@ -116,6 +121,9 @@ func NewConfig() (*Model, error) {
 	}
 	if enableHTTPSFlag != nil && *enableHTTPSFlag {
 		cfg.HTTP.IsSecured = true
+	}
+	if *TrustedSubnet != "" {
+		cfg.HTTP.TrustedSubnet = *TrustedSubnet
 	}
 
 	// Environment variables have highest priority.
@@ -139,6 +147,9 @@ func NewConfig() (*Model, error) {
 	}
 	if _, ok := os.LookupEnv("ENABLE_HTTPS"); ok {
 		cfg.HTTP.IsSecured = true
+	}
+	if v := os.Getenv("TRUSTED_SUBNET"); v != "" {
+		cfg.HTTP.TrustedSubnet = v
 	}
 
 	secretKey, err := uuid.NewV7()
